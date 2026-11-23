@@ -192,9 +192,22 @@ def cmd_try(args):
     db.upsert_vod(vod, s.login)
     made = process_vod(cfg, db, None, s, vod)
     lines = [f"{s.display}: VOD {vod['id']} -> {len(made)} clip(s)"]
+    import json as _json
+    import subprocess as _sp
+
+    from .pipeline import clip_file
     for cid in made:
         c = db.clip(cid)
-        lines.append(f"clip #{cid} score {c['score']:.0f} '{c['title']}' -> output/{c['path']}")
+        try:
+            probe = _json.loads(_sp.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                                         "stream=width,height:format=duration,size", "-of", "json",
+                                         str(clip_file(cfg, c))], capture_output=True, text=True).stdout)
+            st, fm = probe["streams"][0], probe["format"]
+            info = f"{st['width']}x{st['height']}, {float(fm['duration']):.0f}s, {int(fm['size']) / 1e6:.1f} MB"
+        except Exception:
+            info = "could not probe"
+        hook = _json.loads(c["meta"] or "{}").get("hook", "")
+        lines.append(f"clip #{cid} score {c['score']:.0f} '{c['title']}' hook '{hook}' ({info}) -> output/{c['path']}")
     _summary(lines, "clipmill try")
 
 

@@ -4,6 +4,12 @@ Already done: Twitch app and keys, Google Cloud project with YouTube Data API an
 3 campaigns picked (Bobby VanRiper, Boeshi, Dasgasd3m), cloud workflows, phone review,
 Instagram uploader.
 
+Tested overnight on GitHub's servers: the **try one VOD** workflow found Boeshi's latest
+finished stream, downloaded its chat, found a moment, downloaded just that window, transcribed it
+and rendered a vertical clip. To see it: github.com/Varkot-dev/clipmill/actions > "try one VOD" >
+latest run > Artifacts. That test ran without Claude (no token yet), so the clip has no title or
+hook line; with the token from step 2, Claude picks the cut, the title and the hook.
+
 ## 1. Telegram bot for phone review (phone, 2 min)
 1. Install Telegram, open a chat with **@BotFather**, send `/newbot`.
 2. Name it anything (for example `clipmill review`) and give it a username ending in `bot`.
