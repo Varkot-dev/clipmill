@@ -107,7 +107,15 @@ def ask_claude(prompt: str, claude_bin: str = "claude", model: str = "", timeout
         cmd += ["--model", model]
     proc = subprocess.run(cmd, input=prompt, capture_output=True, text=True, timeout=timeout)
     if proc.returncode != 0:
-        raise RuntimeError(f"claude -p failed: {proc.stdout[-500:]} {proc.stderr[-500:]}")
+        detail = proc.stderr[-300:]
+        try:
+            data = json.loads(proc.stdout)
+            if isinstance(data, list):
+                data = next((m for m in reversed(data) if m.get("type") == "result"), {})
+            detail = f"{data.get('subtype', '')}: {str(data.get('result', ''))[:300]} {detail}"
+        except Exception:
+            detail = proc.stdout[:300] + " " + detail
+        raise RuntimeError(f"claude -p failed: {detail.strip()}")
     return parse_claude_output(proc.stdout)
 
 
