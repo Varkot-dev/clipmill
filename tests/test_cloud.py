@@ -288,3 +288,15 @@ def test_auto_approve_keeps_only_strong_clips(cloud):
     db.update_clip(ids[2], score=8)
     assert review_flow.auto_approve(db, 8) == (2, 1)
     assert [db.clip(i)["status"] for i in ids] == ["approved", "rejected", "approved"]
+
+
+def test_disclosure_shows_at_the_start():
+    ass = captions.build_ass([Word(0, 0.4, "hi")], 0, 20, disclosure="#ad", disclosure_seconds=3)
+    ad = [l for l in ass.splitlines() if ",Ad," in l]
+    assert ad and ad[0].startswith("Dialogue: 3,0:00:00.00,0:00:03.00,Ad")
+
+
+def test_disabled_streamer_is_kept_but_off():
+    cfg = config.load(None, root=REPO)
+    assert not cfg.streamer("dasgasd3m").enabled
+    assert cfg.streamer("darealboeshi").enabled

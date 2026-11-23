@@ -29,6 +29,8 @@ device = "auto"
 compute_type = "auto"
 
 [render]
+disclosure = "#ad"          # shown for the first 3 seconds; Content Rewards requires it at the start
+disclosure_seconds = 3
 width = 1080
 height = 1920
 crf = 20
@@ -85,10 +87,11 @@ notes = "Brief: funniest and craziest GTA 6 moments, reactions, police chases, c
 [[streamers]]
 login = "dasgasd3m"
 display = "Dasgasd3m"
-handle_text = "twitch.tv/dasgasd3m"
+handle_text = "kick.com/dasgasd3m"
+enabled = false   # streams on Kick, not Twitch; clipmill reads Twitch only for now
 campaign = "Content Rewards: Dasgasd3m x RUCKUS GTA 6 ($2/1K, TikTok/YouTube)"
 game = "GTA 6"
 focus = ["Lucia", "Jason"]
 facecam = []
 gameplay = [0.0, 0.0, 1.0, 1.0]
-notes = "Twitch login NOT verified yet; check the campaign brief. Campaign requires a GTA 6-only channel."
+notes = "Brief: keep the setup, his reaction and the payoff; credit kick.com/dasgasd3m and #dasgasdom3; YouTube Shorts or TikTok only."

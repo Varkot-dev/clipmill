@@ -17,6 +17,7 @@ def description(s: Streamer, title: str) -> str:
     tag = "#GTA6" if "6" in s.game else "#GTARP"
     return "\n".join([
         title, "",
+        "#ad Paid clip.",
         f"Streamer: {s.display} ({s.handle_text})",
         f"Watch the full stream at {s.handle_text}", "",
         f"{tag} #{s.display.replace(' ', '')} #shorts",
@@ -25,7 +26,7 @@ def description(s: Streamer, title: str) -> str:
 
 def instagram_caption(s: Streamer, title: str) -> str:
     tag = "#gta6 #gtavi" if "6" in s.game else "#gtarp"
-    return f"{title}\n\nStreamer: {s.display} ({s.handle_text})\n\n{tag} #gaming #twitch #{s.display.replace(' ', '').lower()}"
+    return f"#ad {title}\n\nStreamer: {s.display} ({s.handle_text})\n\n{tag} #gaming #twitch #{s.display.replace(' ', '').lower()}"
 
 
 def enabled_platforms(cfg: Config) -> list[str]:
