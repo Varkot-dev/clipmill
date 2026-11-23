@@ -3,7 +3,7 @@
 Notes from the docs (see SETUP.md):
 - Uploads from API projects that have not passed YouTube's compliance audit are
   forced to private. Flip them to public in YouTube Studio, or apply for the audit.
-- If the OAuth consent screen is left in "Testing", the login expires every 7 days.
+- The OAuth app is published, so the login does not expire on its own (only if revoked).
   Publish the app to "In production" once to avoid that.
 """
 
@@ -56,8 +56,8 @@ def client(client_secrets: Path, token_file: Path):
         except Exception as e:
             raise RuntimeError(
                 "YouTube login expired. On your Mac run `clipmill youtube-login`, then "
-                "`scripts/set_github_secrets.sh` (logins expire every 7 days while the Google app is "
-                "in Testing; see MORNING.md)."
+                "`scripts/set_github_secrets.sh` (the login was revoked or made while the app was in "
+                "Testing)."
             ) from e
         if not env_token:
             token_file.write_text(creds.to_json())

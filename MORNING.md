@@ -63,8 +63,9 @@ After that it runs by itself: new clips every 6 hours, approvals every hour.
 - **YouTube uploads stay private** until Google audits the API project. Tap the link in Telegram
   and switch the video to Public in the YouTube Studio app. To remove this step for good, apply
   through the YouTube API Services audit form (free).
-- **YouTube login lasts 7 days** while the Google app is in Testing. Publishing the app needs a
-  privacy policy page; until then, redo steps 3 and 4 weekly (Telegram tells you when it expires).
+- **YouTube login no longer expires weekly.** The Google app is published (privacy page at
+  https://varkot-dev.github.io/gta6moments/privacy.html), so one login lasts until revoked.
+- **Instagram token refreshes itself** once a week inside the cloud job, so it never runs out.
 - **Free GitHub minutes:** private repos get a monthly allowance. If runs stop with a billing
   message, either make the repo public (unlimited, your keys stay secret) or lower
   `vods_per_streamer` / `max_candidates_per_vod` in `clipmill.toml`.
