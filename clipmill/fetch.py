@@ -44,8 +44,10 @@ def download_window(vod_url: str, start: float, end: float, out: Path, max_heigh
             _need("yt-dlp"),
             "--quiet", "--no-warnings",
             "-f", f"best[height<={max_height}]/best",
+            # No --force-keyframes-at-cuts: that re-encodes (minutes per window). The cut may
+            # start a few seconds early, which is fine because transcript and cut points are
+            # all measured on this downloaded file, and the final render re-encodes anyway.
             "--download-sections", f"*{hms(start)}-{hms(end)}",
-            "--force-keyframes-at-cuts",
             "-o", str(out),
             vod_url,
         ],
@@ -93,7 +95,7 @@ def vod_info(url: str) -> dict:
 def extract_audio(video: Path, out: Path) -> Path:
     subprocess.run(
         [_need("ffmpeg"), "-y", "-loglevel", "error", "-i", str(video),
-         "-vn", "-ac", "1", "-ar", "16000", str(out)],
+         "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", str(out)],
         check=True,
     )
     return out

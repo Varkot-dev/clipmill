@@ -267,3 +267,15 @@ def test_instagram_error_is_reported(tmp_path):
     video.write_bytes(b"x")
     with pytest.raises(RuntimeError, match="Invalid OAuth"):
         Instagram("T", user_id="1", session=Bad()).publish_reel(video, "c", poll_seconds=0)
+
+
+def test_load_wav_reads_ffmpeg_output(tmp_path):
+    import subprocess
+    from clipmill.fetch import extract_audio
+    from clipmill.transcribe import load_wav
+
+    src = tmp_path / "a.mp4"
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "sine=frequency=440:duration=2",
+                    str(src)], check=True)
+    samples = load_wav(extract_audio(src, tmp_path / "a.wav"))
+    assert 31000 < len(samples) < 33000 and samples.dtype.name == "float32" and abs(samples).max() <= 1.0

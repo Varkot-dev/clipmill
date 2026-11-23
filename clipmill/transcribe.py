@@ -30,9 +30,24 @@ def _model(name: str, device: str, compute_type: str):
     return WhisperModel(name, device=device, compute_type=compute_type)
 
 
+def load_wav(path: Path):
+    """Reads the 16 kHz mono WAV made by fetch.extract_audio into float32 samples.
+    Passing samples (not a path) avoids faster-whisper's PyAV decoder, which breaks
+    with some PyAV releases."""
+    import wave
+
+    import numpy as np
+
+    with wave.open(str(path), "rb") as w:
+        if w.getsampwidth() != 2 or w.getnchannels() != 1:
+            raise ValueError("expected 16-bit mono WAV")
+        frames = w.readframes(w.getnframes())
+    return np.frombuffer(frames, dtype=np.int16).astype(np.float32) / 32768.0
+
+
 def transcribe(audio: Path, model: str = "small", device: str = "auto", compute_type: str = "auto") -> list[Word]:
     segments, _ = _model(model, device, compute_type).transcribe(
-        str(audio), word_timestamps=True, vad_filter=True, language="en"
+        load_wav(audio), word_timestamps=True, vad_filter=True, language="en"
     )
     words = []
     for seg in segments:
