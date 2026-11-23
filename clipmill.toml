@@ -1,0 +1,93 @@
+# clipmill settings and streamers. Committed to the repo, so NO secrets in here.
+# Keys go in config.toml on your Mac (git-ignored) or in GitHub secrets for cloud runs.
+
+[paths]
+work_dir = "work"          # downloaded windows, transcripts (safe to delete)
+output_dir = "output"      # rendered clips
+db = "clipmill.db"         # cloud runs set CLIPMILL_DB=state/clipmill.db
+
+[detect]
+bucket_seconds = 5          # chat is counted in 5 second buckets
+baseline_minutes = 10       # rolling window used as "normal" chat speed
+min_zscore = 3.0            # how far above normal a spike must be
+min_gap_seconds = 90        # spikes closer than this are merged
+max_candidates_per_vod = 12 # only the strongest spikes go to the judge (keeps cloud minutes free)
+lead_seconds = 50           # chat reacts after the moment, so look back this far
+tail_seconds = 15
+viewer_clip_boost = 2.0     # extra score when a viewer already clipped that moment
+vods_per_streamer = 2       # how many recent VODs to look at each run
+
+[judge]
+mode = "claude"             # "claude" uses claude -p on your plan; "heuristic" needs no LLM
+claude_bin = "claude"
+model = ""                  # empty means the Claude Code default
+min_score = 6               # 1 to 10, clips below this are not rendered at all
+
+[transcribe]
+model = "base"              # faster-whisper: tiny, base, small. base is fast on cloud CPUs
+device = "auto"
+compute_type = "auto"
+
+[render]
+width = 1080
+height = 1920
+crf = 20
+preset = "veryfast"
+font = "Arial Black"
+caption_words = 3
+
+[auto]
+# Used by `clipmill run --auto`: no manual review, only strong clips get posted.
+min_score = 8               # judge score needed to post automatically
+max_uploads_per_run = 2
+max_uploads_per_day = 6     # across all streamers, so the channel never floods
+platforms = ["youtube", "instagram"]   # a platform with no login set up is skipped
+
+[youtube]
+client_secrets = "client_secret.json"
+token_file = "youtube_token.json"
+privacy = "public"          # forced to private by Google until the API audit passes
+category_id = "20"          # Gaming
+default_tags = ["GTA 6", "GTA VI", "GTA", "gaming", "shorts"]
+
+[instagram]
+api_host = "https://graph.instagram.com"
+api_version = "v23.0"
+share_to_feed = true
+
+# ---------------------------------------------------------------------------
+# Streamers: only ones running a campaign we joined (Content Rewards, Nov 2026).
+# facecam/gameplay are [x, y, width, height] as fractions of the 16:9 frame.
+# facecam = [] uses the blurred-background layout until the camera spot is measured.
+
+[[streamers]]
+login = "bobby_vanriper"
+display = "Bobby VanRiper"
+handle_text = "twitch.tv/bobby_vanriper"
+campaign = "Content Rewards: BOBBY VAN RIPER GTA VI Clipping ($1.50/1K, TikTok/IG/YouTube)"
+game = "GTA 6"
+focus = ["Lucia", "Jason"]
+facecam = []
+gameplay = [0.0, 0.0, 1.0, 1.0]
+
+[[streamers]]
+login = "darealboeshi"
+display = "Boeshi"
+handle_text = "twitch.tv/darealboeshi"
+campaign = "Content Rewards: Boeshi GTA 6 Clipping ($1/1K, TikTok/IG/YouTube)"
+game = "GTA 6"
+focus = ["Lucia", "Jason", "police", "chase"]
+facecam = []
+gameplay = [0.0, 0.0, 1.0, 1.0]
+notes = "Brief: funniest and craziest GTA 6 moments, reactions, police chases, chaotic gameplay."
+
+[[streamers]]
+login = "dasgasd3m"
+display = "Dasgasd3m"
+handle_text = "twitch.tv/dasgasd3m"
+campaign = "Content Rewards: Dasgasd3m x RUCKUS GTA 6 ($2/1K, TikTok/YouTube)"
+game = "GTA 6"
+focus = ["Lucia", "Jason"]
+facecam = []
+gameplay = [0.0, 0.0, 1.0, 1.0]
+notes = "Twitch login NOT verified yet; check the campaign brief. Campaign requires a GTA 6-only channel."

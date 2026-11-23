@@ -34,7 +34,21 @@ CREATE TABLE IF NOT EXISTS clips (
     meta TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS kv (
+    key TEXT PRIMARY KEY,
+    value TEXT
+);
 """
+
+# Columns added after the first version; added to old databases on open.
+MIGRATIONS = {
+    "instagram_id": "TEXT",
+    "uploaded_at": "TEXT",
+    "notified_message_id": "INTEGER",
+    "artifact_run_id": "TEXT",
+    "artifact_name": "TEXT",
+    "upload_error": "TEXT",
+}
 
 
 class DB:
@@ -42,6 +56,28 @@ class DB:
         self.conn = sqlite3.connect(path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(SCHEMA)
+        have = {r["name"] for r in self.conn.execute("PRAGMA table_info(clips)")}
+        for col, kind in MIGRATIONS.items():
+            if col not in have:
+                self.conn.execute(f"ALTER TABLE clips ADD COLUMN {col} {kind}")
+        self.conn.commit()
+
+    def get(self, key: str, default: str | None = None) -> str | None:
+        row = self.conn.execute("SELECT value FROM kv WHERE key=?", (key,)).fetchone()
+        return row["value"] if row else default
+
+    def put(self, key: str, value) -> None:
+        self.conn.execute("INSERT OR REPLACE INTO kv (key, value) VALUES (?,?)", (key, str(value)))
+        self.conn.commit()
+
+    def uploads_today(self) -> int:
+        return self.conn.execute(
+            "SELECT COUNT(*) FROM clips WHERE uploaded_at >= date('now')").fetchone()[0]
+
+    def unnotified(self):
+        return self.conn.execute(
+            "SELECT * FROM clips WHERE status='pending' AND notified_message_id IS NULL ORDER BY score DESC, id"
+        ).fetchall()
 
     def upsert_vod(self, vod: dict, streamer: str) -> bool:
         """Returns True if the VOD is new."""

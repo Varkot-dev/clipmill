@@ -6,8 +6,9 @@ build-backend = "setuptools.build_meta"
 name = "clipmill"
 version = "0.1.0"
 description = "Turns Twitch streams into captioned vertical clips for review and upload"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
+    "tomli; python_version < '3.11'",
     "numpy",
     "requests",
     "yt-dlp",

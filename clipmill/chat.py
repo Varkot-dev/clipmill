@@ -33,6 +33,7 @@ _HAHA = re.compile(r"^(ha){2,}h?$|^a?(ha)+$")
 class Message:
     t: float
     text: str
+    author: str = ""
 
 
 @dataclass
@@ -49,14 +50,16 @@ def load_chat(path: str | Path) -> list[Message]:
     """Reads a TwitchDownloader chat JSON (or a simple [{t, text}] list)."""
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     if isinstance(data, list):
-        return [Message(float(m["t"]), str(m["text"])) for m in data]
+        return [Message(float(m["t"]), str(m["text"]), str(m.get("author", ""))) for m in data]
     out = []
     for c in data.get("comments", []):
         msg = c.get("message", {})
         body = msg.get("body")
         if body is None:
             body = "".join(f.get("text", "") for f in msg.get("fragments", []))
-        out.append(Message(float(c["content_offset_seconds"]), body))
+        commenter = c.get("commenter") or {}
+        author = commenter.get("name") or commenter.get("_id") or commenter.get("display_name") or ""
+        out.append(Message(float(c["content_offset_seconds"]), body, str(author)))
     return out
 
 
@@ -79,6 +82,7 @@ def find_spikes(
     baseline_min: float = 10,
     min_z: float = 3.0,
     min_gap_s: float = 90,
+    min_chatters: int = 4,
 ) -> list[Spike]:
     if not messages:
         return []
@@ -87,10 +91,21 @@ def find_spikes(
     activity = np.zeros(n)
     cats = [Counter() for _ in range(n)]
     texts: list[list[str]] = [[] for _ in range(n)]
+    # Count each chatter once per bucket (for messages and for reactions), so one
+    # person spamming KEKW cannot fake a spike. Without author names, every message counts.
+    seen: list[set] = [set() for _ in range(n)]
+    reactors: list[set] = [set() for _ in range(n)]
     for m in messages:
         i = min(int(m.t // bucket_s), n - 1)
         c = classify(m.text)
-        activity[i] += 1 + 2 * sum(c.values())
+        if m.author and c:
+            reactors[i].add(m.author)
+        if m.author:
+            if m.author in seen[i]:
+                texts[i].append(m.text)
+                continue
+            seen[i].add(m.author)
+        activity[i] += 1 + 2 * min(sum(c.values()), 1)
         cats[i] += c
         texts[i].append(m.text)
 
@@ -105,7 +120,15 @@ def find_spikes(
         z[i] = (activity[i] - med) / max(mad, 1.0)
 
     # Local maxima above the threshold, strongest first, at least min_gap apart.
-    peaks = [i for i in range(n) if z[i] >= min_z and z[i] == z[max(0, i - 2): i + 3].max()]
+    # When names are known, a real moment needs several different people reacting
+    # (KEKW, W, WHAT...), not one person spamming.
+    has_authors = any(m.author for m in messages)
+
+    def crowd(i: int) -> int:
+        return len(set().union(*reactors[max(0, i - 1): i + 2]))
+
+    peaks = [i for i in range(n) if z[i] >= min_z and z[i] == z[max(0, i - 2): i + 3].max()
+             and (not has_authors or crowd(i) >= min_chatters)]
     peaks.sort(key=lambda i: -z[i])
     gap = int(min_gap_s // bucket_s)
     chosen: list[int] = []

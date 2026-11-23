@@ -2,17 +2,21 @@
 
 The default judge calls Claude through the Claude Code CLI (`claude -p`), which runs
 on your logged-in Claude plan. Do not add --bare: bare mode ignores your login and
-needs an API key instead.
+needs an API key instead. In GitHub Actions the same login comes from the
+CLAUDE_CODE_OAUTH_TOKEN secret (made once with `claude setup-token`).
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import shutil
 import subprocess
 from dataclasses import dataclass
 
 from .transcribe import Word, as_timed_text
+
+log = logging.getLogger("clipmill")
 
 SCHEMA = {
     "type": "object",
@@ -25,8 +29,9 @@ SCHEMA = {
         "category": {"type": "string", "enum": ["funny", "hype", "shock", "wholesome", "rage", "other"]},
         "spoiler_risk": {"type": "boolean"},
         "reason": {"type": "string"},
+        "hook": {"type": "string"},
     },
-    "required": ["keep", "score", "start_s", "end_s", "title", "category", "spoiler_risk", "reason"],
+    "required": ["keep", "score", "start_s", "end_s", "title", "category", "spoiler_risk", "reason", "hook"],
 }
 
 PROMPT = """You pick moments from {game} livestreams to post as YouTube Shorts and TikToks.
@@ -52,6 +57,9 @@ Decide:
   plot reveal. Rockstar takes those down, so they must not be kept. Gameplay and the
   streamer's own reaction are fine.
 - reason: one sentence.
+- hook: 3 to 8 words shown at the top of the video for the whole clip. It gives a stranger
+  the context and makes them want to see the payoff (for example "He thought the cop was
+  an NPC"). Plain words, no emojis, no hashtags, do not give away the punchline.
 """
 
 
@@ -65,6 +73,7 @@ class Verdict:
     category: str
     spoiler_risk: bool
     reason: str
+    hook: str = ""
 
 
 def snap_to_words(words: list[Word], start: float, end: float, min_gap: float = 0.25) -> tuple[float, float]:
@@ -122,8 +131,15 @@ def judge(*, words: list[Word], chat_sample: list[str], spike_rel: float, catego
         chat="\n".join(chat_sample[:25]) or "(none)",
         transcript=as_timed_text(words) or "(no speech detected)",
     )
-    out = ask_claude(prompt, cfg_judge.get("claude_bin", "claude"), cfg_judge.get("model", ""))
-    v = Verdict(**{k: out[k] for k in SCHEMA["required"]})
+    if getattr(streamer, "notes", ""):
+        prompt += f"\nCampaign brief from the streamer: {streamer.notes}\n"
+    try:
+        out = ask_claude(prompt, cfg_judge.get("claude_bin", "claude"), cfg_judge.get("model", ""))
+    except (FileNotFoundError, RuntimeError, subprocess.TimeoutExpired, json.JSONDecodeError) as e:
+        # Never let a missing login or a Claude outage stop the run; fall back to chat-only scoring.
+        log.warning("Claude judge unavailable (%s); using the chat-spike heuristic", str(e)[:200])
+        return heuristic(spike_rel, words, zscore, window_len)
+    v = Verdict(**{k: out.get(k, "") for k in SCHEMA["required"]})
     v.start_s, v.end_s = snap_to_words(words, max(0.0, v.start_s), min(window_len, v.end_s))
     if v.spoiler_risk:
         v.keep = False

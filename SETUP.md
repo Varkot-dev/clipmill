@@ -1,4 +1,6 @@
-# Setup checklist
+# Setup reference
+
+> For the current step-by-step, use **MORNING.md**. This page has background detail on each account. Settings and streamers now live in `clipmill.toml`; `config.toml` holds only keys.
 
 Everything here is free. Do it once, in this order. `clipmill doctor` tells you what is still missing.
 

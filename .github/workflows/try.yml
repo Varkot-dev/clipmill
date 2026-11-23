@@ -1,0 +1,57 @@
+# Manual test: runs the whole pipeline on one streamer's newest VOD and keeps the clips as a
+# downloadable artifact. Needs no secrets (Claude judging is used only if its token is set).
+name: try one VOD
+
+on:
+  workflow_dispatch:
+    inputs:
+      streamer:
+        description: "Streamer login from clipmill.toml"
+        default: "darealboeshi"
+      url:
+        description: "Specific VOD URL (optional)"
+        default: ""
+      max_candidates:
+        description: "How many moments to try"
+        default: "3"
+
+jobs:
+  try:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CI: "true"
+      DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: "1"
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-dejavu-core > /dev/null
+      - name: Install TwitchDownloaderCLI
+        run: |
+          gh release download -R lay295/TwitchDownloader -p '*CLI*Linux-x64.zip' -D /tmp/tdl
+          unzip -q -o /tmp/tdl/*.zip -d /tmp/tdl
+          sudo install -m 755 /tmp/tdl/TwitchDownloaderCLI /usr/local/bin/TwitchDownloaderCLI
+      - name: Install Claude Code (judge)
+        if: env.CLAUDE_CODE_OAUTH_TOKEN != ''
+        run: npm install -g @anthropic-ai/claude-code > /dev/null
+      - name: Install clipmill
+        run: pip install -q -e .
+      - name: Try one VOD
+        run: |
+          if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then export CLIPMILL_JUDGE_MODE=heuristic; fi
+          args="--streamer ${{ inputs.streamer }} --max-candidates ${{ inputs.max_candidates }}"
+          if [ -n "${{ inputs.url }}" ]; then args="$args --url ${{ inputs.url }}"; fi
+          python -m clipmill.cli --config none try $args
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: try-clips-${{ github.run_id }}
+          path: output/
+          retention-days: 7
+          if-no-files-found: ignore

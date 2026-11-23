@@ -57,7 +57,11 @@ def _lan_ip() -> str:
         return "127.0.0.1"
 
 
-def make_handler(db: DB):
+def make_handler(db: DB, output_dir: Path | None = None):
+    def resolve(p: str) -> Path:
+        path = Path(p)
+        return path if path.is_absolute() or output_dir is None else output_dir / path
+
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
             pass
@@ -78,9 +82,9 @@ def make_handler(db: DB):
                 self._send(200, body, "text/html; charset=utf-8")
             elif path.startswith("/media/"):
                 clip = db.clip(int(path.rsplit("/", 1)[1]))
-                if not clip or not Path(clip["path"]).exists():
+                if not clip or not resolve(clip["path"]).exists():
                     return self._send(404, b"not found", "text/plain")
-                self._send_file(Path(clip["path"]))
+                self._send_file(resolve(clip["path"]))
             else:
                 self._send(404, b"not found", "text/plain")
 
@@ -131,7 +135,7 @@ def make_handler(db: DB):
     return Handler
 
 
-def serve(db: DB, port: int = 8787):
-    server = ThreadingHTTPServer(("0.0.0.0", port), make_handler(db))
+def serve(db: DB, port: int = 8787, output_dir: Path | None = None):
+    server = ThreadingHTTPServer(("0.0.0.0", port), make_handler(db, output_dir))
     print(f"Review page: http://localhost:{port}  (phone on same Wi-Fi: http://{_lan_ip()}:{port})")
     server.serve_forever()

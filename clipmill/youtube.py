@@ -9,6 +9,8 @@ Notes from the docs (see SETUP.md):
 
 from __future__ import annotations
 
+import json
+import os
 from pathlib import Path
 
 SCOPES = [
@@ -17,27 +19,49 @@ SCOPES = [
 ]
 
 
+def available(token_file: Path) -> bool:
+    return bool(os.environ.get("YOUTUBE_TOKEN_JSON")) or token_file.exists()
+
+
+def login(client_secrets: Path, token_file: Path) -> None:
+    """One-time browser login on your Mac. Saves a refresh token to token_file."""
+    from google_auth_oauthlib.flow import InstalledAppFlow
+
+    if not client_secrets.exists():
+        raise FileNotFoundError(f"{client_secrets} not found. Download it from Google Cloud (SETUP.md).")
+    flow = InstalledAppFlow.from_client_secrets_file(str(client_secrets), SCOPES)
+    creds = flow.run_local_server(port=0, prompt="consent", access_type="offline")
+    token_file.write_text(creds.to_json())
+
+
 def client(client_secrets: Path, token_file: Path):
+    """Cloud runs pass the saved token in YOUTUBE_TOKEN_JSON and never open a browser."""
     from google.auth.transport.requests import Request
     from google.oauth2.credentials import Credentials
-    from google_auth_oauthlib.flow import InstalledAppFlow
     from googleapiclient.discovery import build
 
-    creds = None
-    if token_file.exists():
+    env_token = os.environ.get("YOUTUBE_TOKEN_JSON")
+    if env_token:
+        creds = Credentials.from_authorized_user_info(json.loads(env_token), SCOPES)
+    elif token_file.exists():
         creds = Credentials.from_authorized_user_file(str(token_file), SCOPES)
-    if creds and creds.expired and creds.refresh_token:
+    else:
+        if os.environ.get("CI"):
+            raise RuntimeError("YOUTUBE_TOKEN_JSON secret is not set")
+        login(client_secrets, token_file)
+        creds = Credentials.from_authorized_user_file(str(token_file), SCOPES)
+    if not creds.valid:
         try:
             creds.refresh(Request())
-        except Exception:
-            creds = None
-    if not creds or not creds.valid:
-        if not client_secrets.exists():
-            raise FileNotFoundError(f"{client_secrets} not found. Download it from Google Cloud (SETUP.md).")
-        flow = InstalledAppFlow.from_client_secrets_file(str(client_secrets), SCOPES)
-        creds = flow.run_local_server(port=0, prompt="consent")
-    token_file.write_text(creds.to_json())
-    return build("youtube", "v3", credentials=creds)
+        except Exception as e:
+            raise RuntimeError(
+                "YouTube login expired. On your Mac run `clipmill youtube-login`, then "
+                "`scripts/set_github_secrets.sh` (logins expire every 7 days while the Google app is "
+                "in Testing; see MORNING.md)."
+            ) from e
+        if not env_token:
+            token_file.write_text(creds.to_json())
+    return build("youtube", "v3", credentials=creds, cache_discovery=False)
 
 
 def short_title(title: str) -> str:
