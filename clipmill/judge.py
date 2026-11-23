@@ -9,6 +9,7 @@ CLAUDE_CODE_OAUTH_TOKEN secret (made once with `claude setup-token`).
 from __future__ import annotations
 
 import json
+import os
 import logging
 import shutil
 import subprocess
@@ -105,7 +106,11 @@ def ask_claude(prompt: str, claude_bin: str = "claude", model: str = "", timeout
            "--permission-mode", "dontAsk"]
     if model:
         cmd += ["--model", model]
-    proc = subprocess.run(cmd, input=prompt, capture_output=True, text=True, timeout=timeout)
+    env = os.environ.copy()
+    tok = env.get("CLAUDE_CODE_OAUTH_TOKEN", "")
+    if tok:  # a token copied from a wrapped terminal line can carry spaces or line breaks
+        env["CLAUDE_CODE_OAUTH_TOKEN"] = "".join(tok.split())
+    proc = subprocess.run(cmd, input=prompt, capture_output=True, text=True, timeout=timeout, env=env)
     if proc.returncode != 0:
         detail = proc.stderr[-300:]
         try:
