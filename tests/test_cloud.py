@@ -279,3 +279,12 @@ def test_load_wav_reads_ffmpeg_output(tmp_path):
                     str(src)], check=True)
     samples = load_wav(extract_audio(src, tmp_path / "a.wav"))
     assert 31000 < len(samples) < 33000 and samples.dtype.name == "float32" and abs(samples).max() <= 1.0
+
+
+def test_auto_approve_keeps_only_strong_clips(cloud):
+    cfg, db, ids = cloud
+    db.update_clip(ids[0], score=9)
+    db.update_clip(ids[1], score=7)
+    db.update_clip(ids[2], score=8)
+    assert review_flow.auto_approve(db, 8) == (2, 1)
+    assert [db.clip(i)["status"] for i in ids] == ["approved", "rejected", "approved"]

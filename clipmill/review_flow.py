@@ -91,6 +91,19 @@ def apply_decisions(cfg: Config, db: DB, tg: Telegram) -> dict:
     return counts
 
 
+def auto_approve(db: DB, min_score: float) -> tuple[int, int]:
+    """Hands-off mode: approve pending clips at or above min_score, drop the rest."""
+    approved = dropped = 0
+    for clip in db.clips("pending"):
+        if (clip["score"] or 0) >= min_score:
+            db.update_clip(clip["id"], status="approved")
+            approved += 1
+        else:
+            db.update_clip(clip["id"], status="rejected")
+            dropped += 1
+    return approved, dropped
+
+
 def publish_approved(cfg: Config, db: DB, tg: Telegram | None) -> list[str]:
     """Posts approved clips, respecting the per-run and per-day caps. Extra approvals wait."""
     auto = cfg.section("auto")

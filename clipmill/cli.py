@@ -100,7 +100,17 @@ def cmd_run(args):
     cfg, db = _ctx(args)
     lines = _process(cfg, db, args)
     tg = telegram_from_env(cfg)
-    if tg:
+    auto = cfg.section("auto")
+    if not auto.get("review", True):
+        # Hands-off mode: strong clips post themselves, the rest are dropped. Telegram (if set)
+        # only receives the links afterwards.
+        from .review_flow import auto_approve, publish_approved
+
+        approved, dropped = auto_approve(db, auto.get("min_score", 8))
+        lines.append(f"Auto mode: {approved} clip(s) scored {auto.get('min_score', 8)}+ and were approved, "
+                     f"{dropped} weaker clip(s) dropped")
+        lines += publish_approved(cfg, db, tg)
+    elif tg:
         sent = notify_new(cfg, db, tg)
         if sent:
             lines.append(f"Sent {sent} clip(s) to Telegram for review")
