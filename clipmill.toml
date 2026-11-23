@@ -20,7 +20,7 @@ vods_per_streamer = 2       # how many recent VODs to look at each run
 [judge]
 mode = "claude"             # "claude" uses claude -p on your plan; "heuristic" needs no LLM
 claude_bin = "claude"
-model = ""                  # empty means the Claude Code default
+model = "haiku"             # smallest model; plenty for reading a transcript. "sonnet" if picks look weak
 min_score = 6               # 1 to 10, clips below this are not rendered at all
 
 [transcribe]
