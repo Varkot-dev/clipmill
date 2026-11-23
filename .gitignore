@@ -1,0 +1,19 @@
+# secrets and local state
+config.toml
+client_secret*.json
+youtube_token.json
+*.db
+.env
+
+# media
+work/
+output/
+*.mp4
+*.wav
+*.ass
+
+# python
+__pycache__/
+*.egg-info/
+.venv/
+.pytest_cache/

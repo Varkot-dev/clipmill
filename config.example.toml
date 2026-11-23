@@ -1,0 +1,62 @@
+# Copy this file to config.toml and fill it in. config.toml is git-ignored.
+
+[paths]
+work_dir = "work"          # downloaded windows, transcripts (safe to delete)
+output_dir = "output"      # rendered clips waiting for review
+db = "clipmill.db"
+
+[twitch]
+# Create an app at https://dev.twitch.tv/console/apps (see SETUP.md)
+client_id = ""
+client_secret = ""
+
+[detect]
+bucket_seconds = 5          # chat is counted in 5 second buckets
+baseline_minutes = 10       # rolling window used as "normal" chat speed
+min_zscore = 3.0            # how far above normal a spike must be
+min_gap_seconds = 90        # spikes closer than this are merged
+max_candidates_per_vod = 25 # only the strongest spikes go to the judge
+lead_seconds = 50           # chat reacts after the moment, so look back this far
+tail_seconds = 15
+viewer_clip_boost = 2.0     # extra score when a viewer already clipped that moment
+
+[judge]
+# "claude" uses `claude -p` with your logged-in plan. "heuristic" needs no LLM.
+mode = "claude"
+claude_bin = "claude"
+model = ""                  # empty means your Claude Code default
+min_score = 6               # 1 to 10, clips below this are dropped
+
+[transcribe]
+model = "small"             # faster-whisper model: tiny, base, small, medium, large-v3
+device = "auto"             # "cuda" on an NVIDIA GPU, otherwise "cpu"
+compute_type = "auto"
+
+[render]
+width = 1080
+height = 1920
+crf = 20
+preset = "veryfast"
+font = "Arial Black"
+caption_words = 3           # words per caption chunk
+
+[youtube]
+client_secrets = "client_secret.json"   # OAuth desktop client from Google Cloud
+token_file = "youtube_token.json"
+privacy = "private"         # uploads from unaudited API projects are forced private anyway
+category_id = "20"          # 20 = Gaming
+default_tags = ["GTA", "GTA RP", "GTA 6", "shorts"]
+
+# One block per streamer. Only clip streamers who run a campaign or gave permission.
+[[streamers]]
+login = "examplestreamer"            # twitch.tv/<login>
+display = "ExampleStreamer"
+handle_text = "twitch.tv/examplestreamer"   # burned onto every clip
+campaign = "Content Rewards: Example GTA 6 pool"
+game = "GTA 6"                        # "GTA 6" or "GTA RP"
+# Keywords that mark a moment you want to test (characters, bits, running jokes).
+focus = ["Lucia", "Jason"]
+# Facecam and gameplay areas as fractions of the 16:9 frame: [x, y, w, h].
+# Set facecam = [] for streams with no camera.
+facecam = [0.72, 0.68, 0.27, 0.30]
+gameplay = [0.12, 0.0, 0.76, 1.0]
