@@ -66,10 +66,10 @@ def publish(cfg: Config, db: DB, clip, path: Path) -> dict[str, str]:
 
     if "instagram" in enabled_platforms(cfg) and not clip["instagram_id"]:
         try:
-            from .instagram import Instagram
+            from .instagram import Instagram, live_token
 
             ig_cfg = cfg.section("instagram")
-            ig = Instagram(ig_cfg["access_token"], ig_cfg.get("user_id", ""),
+            ig = Instagram(live_token(db, ig_cfg["access_token"]), ig_cfg.get("user_id", ""),
                            ig_cfg.get("api_host", "https://graph.instagram.com"),
                            ig_cfg.get("api_version", "v23.0"))
             mid = ig.publish_reel(path, instagram_caption(s, title), ig_cfg.get("share_to_feed", True))

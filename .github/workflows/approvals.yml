@@ -59,7 +59,7 @@ jobs:
 
       - name: Install clipmill (light)
         if: steps.gate.outputs.skip != 'true'
-        run: pip install -q --no-deps -e . && pip install -q numpy requests google-api-python-client google-auth-oauthlib playwright && if [ -n "$CR_STATE_JSON" ]; then python -m playwright install --with-deps chromium > /dev/null; fi
+        run: pip install -q --no-deps -e . && pip install -q numpy requests google-api-python-client google-auth-oauthlib playwright cryptography && if [ -n "$CR_STATE_JSON" ]; then python -m playwright install --with-deps chromium > /dev/null; fi
 
       - name: Apply taps and post approved clips
         if: steps.gate.outputs.skip != 'true'

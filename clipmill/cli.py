@@ -269,8 +269,8 @@ def cmd_instagram_refresh(args):
     cfg = config_mod.load(args.config)
     data = refresh_token(cfg.section("instagram").get("access_token", ""))
     days = int(data.get("expires_in", 0)) // 86400
-    print(f"Token refreshed, valid for about {days} more days. Re-run scripts/set_github_secrets.sh "
-          "if the token text changed.")
+    print(f"Token refreshed, valid for about {days} more days. (The cloud job also refreshes it "
+          "weekly on its own, so this is only needed for local runs.)")
 
 
 def main(argv=None):

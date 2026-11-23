@@ -93,3 +93,50 @@ def refresh_token(token: str, session: requests.Session | None = None) -> dict:
     if "access_token" not in data:
         raise RuntimeError(f"could not refresh token: {data}")
     return data
+
+
+# --- Keeping the token alive without anyone touching it ------------------------------------
+# GitHub Actions cannot rewrite its own secrets, so each refreshed token is stored in the state
+# database, encrypted with a key derived from the original INSTAGRAM_ACCESS_TOKEN secret (which
+# never changes). Every run refreshes it once a week; a token refreshed weekly never expires.
+
+REFRESH_EVERY_DAYS = 7
+
+
+def _fernet(base_token: str):
+    import base64
+    import hashlib
+
+    from cryptography.fernet import Fernet
+
+    key = base64.urlsafe_b64encode(hashlib.sha256(("clipmill-ig:" + base_token).encode()).digest())
+    return Fernet(key)
+
+
+def live_token(db, base_token: str, session: requests.Session | None = None, now: float | None = None) -> str:
+    """Returns the newest working token, refreshing it if a week has passed."""
+    import logging
+
+    log = logging.getLogger(__name__)
+    if not base_token:
+        return ""
+    now = time.time() if now is None else now
+    token = base_token
+    stored = db.get("ig_token_enc")
+    if stored:
+        try:
+            token = _fernet(base_token).decrypt(stored.encode()).decode()
+        except Exception:
+            log.warning("Stored Instagram token belongs to an older secret; starting from the secret again")
+            token = base_token
+            db.put("ig_refreshed_at", 0)
+    last = float(db.get("ig_refreshed_at", "0") or 0)
+    if now - last >= REFRESH_EVERY_DAYS * 86400:
+        try:
+            token = refresh_token(token, session)["access_token"]
+            db.put("ig_token_enc", _fernet(base_token).encrypt(token.encode()).decode())
+            db.put("ig_refreshed_at", now)
+            log.info("Instagram token refreshed")
+        except Exception as e:
+            log.warning("Instagram token refresh failed (will retry next run): %s", e)
+    return token
