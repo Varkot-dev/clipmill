@@ -60,12 +60,19 @@ put CLAUDE_CODE_OAUTH_TOKEN "$REPLY_VALUE"
 # 4. Telegram bot for phone review
 ask "Paste the Telegram bot token from @BotFather"
 TG_TOKEN="$REPLY_VALUE"
-put TELEGRAM_BOT_TOKEN "$TG_TOKEN"
+case "$TG_TOKEN" in
+  ""|*:*) ;;
+  *) echo "  that does not look like a Telegram bot token (they contain a colon); skipping"; TG_TOKEN="" ;;
+esac
 if [ -n "$TG_TOKEN" ]; then
+  put TELEGRAM_BOT_TOKEN "$TG_TOKEN"
   TG_CHAT=$(python3 - "$TG_TOKEN" <<'EOF'
 import json, sys, urllib.request
 token = sys.argv[1]
-data = json.load(urllib.request.urlopen(f"https://api.telegram.org/bot{token}/getUpdates", timeout=20))
+try:
+    data = json.load(urllib.request.urlopen(f"https://api.telegram.org/bot{token}/getUpdates", timeout=20))
+except Exception:
+    data = {}
 ids = {str(m["chat"]["id"]) for u in data.get("result", []) for m in [u.get("message") or {}] if m.get("chat")}
 print(next(iter(ids)) if len(ids) == 1 else "")
 EOF
