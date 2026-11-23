@@ -27,6 +27,7 @@ jobs:
       YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
       INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
       INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+      CR_STATE_JSON: ${{ secrets.CR_STATE_JSON }}
       GH_TOKEN: ${{ github.token }}
       GITHUB_TOKEN: ${{ github.token }}
     steps:
@@ -58,7 +59,7 @@ jobs:
 
       - name: Install clipmill (light)
         if: steps.gate.outputs.skip != 'true'
-        run: pip install -q --no-deps -e . && pip install -q numpy requests google-api-python-client google-auth-oauthlib
+        run: pip install -q --no-deps -e . && pip install -q numpy requests google-api-python-client google-auth-oauthlib playwright && if [ -n "$CR_STATE_JSON" ]; then python -m playwright install --with-deps chromium > /dev/null; fi
 
       - name: Apply taps and post approved clips
         if: steps.gate.outputs.skip != 'true'

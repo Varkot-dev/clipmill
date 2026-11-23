@@ -39,6 +39,7 @@ class Streamer:
     display: str
     handle_text: str
     campaign: str = ""
+    campaign_url: str = ""
     game: str = "GTA"
     focus: list[str] = field(default_factory=list)
     facecam: list[float] = field(default_factory=list)

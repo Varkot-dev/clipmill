@@ -48,6 +48,9 @@ MIGRATIONS = {
     "artifact_run_id": "TEXT",
     "artifact_name": "TEXT",
     "upload_error": "TEXT",
+    "instagram_url": "TEXT",
+    "cr_submitted": "TEXT",
+    "cr_error": "TEXT",
 }
 
 

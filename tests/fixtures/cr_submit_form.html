@@ -1,0 +1,16 @@
+<!doctype html><html><body>
+<h1>Boeshi GTA 6 Clipping</h1>
+<button id="opener">Submit clip</button>
+<div id="sheet" role="dialog" style="display:none">
+  <p>No new clips yet</p>
+  <label><input aria-label="Clip link" type="url" placeholder="Paste a link"></label>
+  <label><input type="checkbox" id="agree"> I've read the requirements and accept that non-compliant clips may be auto-rejected.</label>
+  <button id="go">Submit clip</button>
+</div>
+<pre id="log"></pre>
+<script>
+const $=id=>document.getElementById(id);
+$('opener').addEventListener('click',()=>{$('sheet').style.display='block'});
+$('go').addEventListener('click',()=>{const l=document.querySelector('[aria-label="Clip link"]').value;
+ $('log').textContent=$('agree').checked?'OK '+l:'NOT AGREED'; document.title=$('log').textContent;});
+</script></body></html>

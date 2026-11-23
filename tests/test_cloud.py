@@ -300,3 +300,29 @@ def test_disabled_streamer_is_kept_but_off():
     cfg = config.load(None, root=REPO)
     assert not cfg.streamer("dasgasd3m").enabled
     assert cfg.streamer("darealboeshi").enabled
+
+
+def test_content_rewards_bot_fills_the_form(tmp_path):
+    """Runs the real submit() against a copy of the Content Rewards submit sheet."""
+    import os
+    import shutil
+    import threading
+    from functools import partial
+    from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+
+    chrome = os.environ.get("CLIPMILL_CHROME") or shutil.which("google-chrome")
+    pytest.importorskip("playwright")
+    if not chrome:
+        pytest.skip("no Chrome available")
+    os.environ["CLIPMILL_CHROME"] = chrome
+    from clipmill import contentrewards
+
+    handler = partial(SimpleHTTPRequestHandler, directory=str(REPO / "tests" / "fixtures"))
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    url = f"http://127.0.0.1:{server.server_address[1]}/cr_submit_form.html"
+    try:
+        assert contentrewards.submit(url, "https://www.instagram.com/reel/ABC/", {"cookies": [], "origins": []},
+                                     timeout_ms=10000) == "submitted"
+    finally:
+        server.shutdown()

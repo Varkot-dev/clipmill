@@ -231,6 +231,15 @@ def cmd_youtube_login(args):
     print(f"Saved YouTube login to {token}. Next: scripts/set_github_secrets.sh")
 
 
+def cmd_cr_login(args):
+    from . import contentrewards
+
+    cfg = config_mod.load(args.config)
+    path = cfg.root / cfg.section("contentrewards").get("state_file", "cr_state.json")
+    contentrewards.login(path)
+    print(f"Saved Content Rewards login to {path}. Next: bash scripts/set_github_secrets.sh")
+
+
 def cmd_telegram_chat_id(args):
     from .telegram import find_chat_id
 
@@ -297,6 +306,7 @@ def main(argv=None):
     s.add_argument("--out")
     s.set_defaults(fn=cmd_compile)
     sub.add_parser("youtube-login", help="one-time YouTube login in your browser").set_defaults(fn=cmd_youtube_login)
+    sub.add_parser("cr-login", help="one-time Content Rewards login so clips get submitted automatically").set_defaults(fn=cmd_cr_login)
     s = sub.add_parser("telegram-chat-id", help="find your Telegram chat id after messaging your bot")
     s.add_argument("--token")
     s.set_defaults(fn=cmd_telegram_chat_id)

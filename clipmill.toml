@@ -53,6 +53,13 @@ privacy = "public"          # forced to private by Google until the API audit pa
 category_id = "20"          # Gaming
 default_tags = ["GTA 6", "GTA VI", "GTA", "gaming", "shorts"]
 
+[contentrewards]
+# Submit each post to its streamer's campaign right after it goes public (30-minute rule).
+submit = true
+# YouTube is left out until Google's audit lets uploads be public (private posts are rejected).
+platforms = ["instagram"]
+state_file = "cr_state.json"
+
 [instagram]
 api_host = "https://graph.instagram.com"
 api_version = "v23.0"
@@ -68,6 +75,7 @@ login = "bobby_vanriper"
 display = "Bobby VanRiper"
 handle_text = "twitch.tv/bobby_vanriper"
 campaign = "Content Rewards: BOBBY VAN RIPER GTA VI Clipping ($1.50/1K, TikTok/IG/YouTube)"
+campaign_url = "https://contentrewards.com/c/campaigns/f583b069-ced7-49e5-9ed3-2d3a13d6df0c"
 game = "GTA 6"
 focus = ["Lucia", "Jason"]
 facecam = []
@@ -78,6 +86,7 @@ login = "darealboeshi"
 display = "Boeshi"
 handle_text = "twitch.tv/darealboeshi"
 campaign = "Content Rewards: Boeshi GTA 6 Clipping ($1/1K, TikTok/IG/YouTube)"
+campaign_url = "https://contentrewards.com/c/campaigns/5c01ecdb-a148-4489-ba26-5aadbbb5bf69"
 game = "GTA 6"
 focus = ["Lucia", "Jason", "police", "chase"]
 facecam = []
@@ -90,6 +99,7 @@ display = "Dasgasd3m"
 handle_text = "kick.com/dasgasd3m"
 enabled = false   # streams on Kick, not Twitch; clipmill reads Twitch only for now
 campaign = "Content Rewards: Dasgasd3m x RUCKUS GTA 6 ($2/1K, TikTok/YouTube)"
+campaign_url = "https://contentrewards.com/c/campaigns/051002dd-5c46-43d0-a446-43f2957ba3a9"
 game = "GTA 6"
 focus = ["Lucia", "Jason"]
 facecam = []

@@ -46,6 +46,13 @@ else
   echo "  no youtube_token.json yet; run 'clipmill youtube-login' first to enable YouTube posting"
 fi
 
+# 2b. Content Rewards login (made by: clipmill cr-login)
+if [ -f cr_state.json ]; then
+  put CR_STATE_JSON "$(cat cr_state.json)"
+else
+  echo "  no cr_state.json yet; run 'clipmill cr-login' to enable automatic campaign submission"
+fi
+
 # 3. Claude (made by: claude setup-token)
 ask "Paste the Claude token from 'claude setup-token'"
 put CLAUDE_CODE_OAUTH_TOKEN "$REPLY_VALUE"

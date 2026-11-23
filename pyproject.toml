@@ -15,6 +15,7 @@ dependencies = [
     "faster-whisper",
     "google-api-python-client",
     "google-auth-oauthlib",
+    "playwright",
 ]
 
 [project.optional-dependencies]

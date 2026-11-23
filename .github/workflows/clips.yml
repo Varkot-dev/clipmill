@@ -38,6 +38,7 @@ jobs:
       YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
       INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
       INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+      CR_STATE_JSON: ${{ secrets.CR_STATE_JSON }}
       GH_TOKEN: ${{ github.token }}
       GITHUB_TOKEN: ${{ github.token }}
     steps:
@@ -66,6 +67,10 @@ jobs:
 
       - name: Install clipmill
         run: pip install -q -e .
+
+      - name: Install browser for Content Rewards submission
+        if: env.CR_STATE_JSON != ''
+        run: python -m playwright install --with-deps chromium > /dev/null
 
       - name: Cache Whisper model
         uses: actions/cache@v4

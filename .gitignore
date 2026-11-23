@@ -2,6 +2,7 @@
 config.toml
 client_secret*.json
 youtube_token.json
+cr_state.json
 *.db
 .env
 

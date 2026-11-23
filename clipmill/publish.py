@@ -73,8 +73,13 @@ def publish(cfg: Config, db: DB, clip, path: Path) -> dict[str, str]:
                            ig_cfg.get("api_host", "https://graph.instagram.com"),
                            ig_cfg.get("api_version", "v23.0"))
             mid = ig.publish_reel(path, instagram_caption(s, title), ig_cfg.get("share_to_feed", True))
-            db.update_clip(clip["id"], instagram_id=mid)
-            results["instagram"] = ig.permalink(mid) or f"instagram media {mid}"
+            link = ig.permalink(mid)
+            db.update_clip(clip["id"], instagram_id=mid, instagram_url=link or None)
+            results["instagram"] = link or f"instagram media {mid}"
+            if link:
+                note = submit_to_campaign(cfg, db, clip["id"], s, "instagram", link)
+                if note:
+                    results["content rewards"] = note
         except Exception as e:
             log.exception("Instagram upload failed for clip %s", clip["id"])
             errors.append(f"Instagram: {e}")
@@ -88,3 +93,26 @@ def publish(cfg: Config, db: DB, clip, path: Path) -> dict[str, str]:
     else:
         db.update_clip(clip["id"], upload_error="; ".join(errors) or "no platform is set up")
     return results
+
+
+def submit_to_campaign(cfg: Config, db: DB, clip_id: int, s: Streamer, platform: str, post_url: str) -> str:
+    """Submits a just-published post to the streamer's Content Rewards campaign (must happen
+    within 30 minutes of posting). Returns a short note for the report, or "" if not set up."""
+    cr = cfg.section("contentrewards")
+    if not cr.get("submit", False) or platform not in cr.get("platforms", ["instagram"]) or not s.campaign_url:
+        return ""
+    from . import contentrewards
+
+    state = contentrewards.state_from_env_or_file(cfg.root / cr.get("state_file", "cr_state.json"))
+    if not state:
+        db.update_clip(clip_id, cr_error="no Content Rewards login saved (clipmill cr-login)")
+        return "not submitted: Content Rewards login not set up (run clipmill cr-login)"
+    try:
+        contentrewards.submit(s.campaign_url, post_url, state, cfg.path("work_dir") / "screenshots")
+        db.update_clip(clip_id, cr_submitted=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                       cr_error=None)
+        return f"submitted to {s.display}'s campaign"
+    except Exception as e:
+        log.exception("Content Rewards submission failed for clip %s", clip_id)
+        db.update_clip(clip_id, cr_error=str(e)[:500])
+        return f"NOT submitted ({str(e)[:150]}). Submit by hand within 30 min: {s.campaign_url}"
