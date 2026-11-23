@@ -72,11 +72,12 @@ def process_vod(cfg: Config, db: DB, tw: Twitch, s: Streamer, vod: dict) -> list
     spikes = chat.find_spikes(messages, vod.get("duration_s"), d.get("bucket_seconds", 5),
                               d.get("baseline_minutes", 10), d.get("min_zscore", 3.0),
                               d.get("min_gap_seconds", 90))
-    try:
-        vclips = tw.viewer_clips(s.login, vod)
-    except Exception as e:  # viewer clips are a bonus signal, never a blocker
-        log.warning("could not load viewer clips: %s", e)
-        vclips = []
+    vclips = []
+    if tw is not None:
+        try:
+            vclips = tw.viewer_clips(s.login, vod)
+        except Exception as e:  # viewer clips are a bonus signal, never a blocker
+            log.warning("could not load viewer clips: %s", e)
     spikes = chat.boost_with_viewer_clips(spikes, vclips, d.get("viewer_clip_boost", 2.0),
                                           d.get("lead_seconds", 50))
     spikes = spikes[: d.get("max_candidates_per_vod", 12)]

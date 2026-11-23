@@ -54,18 +54,23 @@ def download_window(vod_url: str, start: float, end: float, out: Path, max_heigh
     return out
 
 
-def latest_vod(login: str) -> dict:
-    """Finds a streamer's newest VOD with yt-dlp alone (no Twitch keys needed)."""
+def latest_vod(login: str, min_minutes: float = 45, look_back: int = 4) -> dict:
+    """Finds a streamer's newest finished VOD with yt-dlp alone (no Twitch keys needed).
+    Streams that are still live, or shorter than min_minutes, are skipped."""
     import json
 
     listing = subprocess.run(
-        [_need("yt-dlp"), "-J", "--flat-playlist", "--playlist-end", "1",
+        [_need("yt-dlp"), "-J", "--flat-playlist", "--playlist-end", str(look_back),
          f"https://www.twitch.tv/{login}/videos?filter=archives&sort=time"],
         check=True, capture_output=True, text=True).stdout
     entries = json.loads(listing).get("entries") or []
     if not entries:
         raise LookupError(f"no VODs found for {login}")
-    return vod_info(entries[0].get("url") or f"https://www.twitch.tv/videos/{entries[0]['id'].lstrip('v')}")
+    for e in entries:
+        info = vod_info(e.get("url") or f"https://www.twitch.tv/videos/{str(e['id']).lstrip('v')}")
+        if not info["is_live"] and info["duration_s"] >= min_minutes * 60:
+            return info
+    raise LookupError(f"no finished VOD of at least {min_minutes:.0f} minutes among the last {look_back}")
 
 
 def vod_info(url: str) -> dict:
@@ -74,8 +79,15 @@ def vod_info(url: str) -> dict:
     info = json.loads(subprocess.run([_need("yt-dlp"), "-J", "--no-warnings", url], check=True,
                                      capture_output=True, text=True).stdout)
     vid = str(info["id"]).lstrip("v")
+    import time
+
+    # A VOD whose end is within the last 10 minutes is almost certainly still being recorded.
+    ends = (info.get("timestamp") or 0) + (info.get("duration") or 0)
+    if info.get("timestamp") and time.time() - ends < 600:
+        info["is_live"] = True
     return {"id": vid, "title": info.get("title", ""), "duration_s": float(info.get("duration") or 0),
-            "created_at": info.get("upload_date") or "", "url": f"https://www.twitch.tv/videos/{vid}"}
+            "created_at": info.get("upload_date") or "", "url": f"https://www.twitch.tv/videos/{vid}",
+            "is_live": bool(info.get("is_live") or info.get("live_status") in ("is_live", "is_upcoming"))}
 
 
 def extract_audio(video: Path, out: Path) -> Path:
