@@ -92,7 +92,7 @@ def snap_to_words(words: list[Word], start: float, end: float, min_gap: float = 
 def heuristic(spike_rel: float, words: list[Word], zscore: float, window_len: float) -> Verdict:
     start, end = snap_to_words(words, max(0.0, spike_rel - 35), min(window_len, spike_rel + 8))
     return Verdict(
-        keep=zscore >= 4, score=min(10, int(zscore) + 2), start_s=start, end_s=end,
+        keep=zscore >= 2.5, score=max(1, min(10, int(zscore) + 3)), start_s=start, end_s=end,
         title="", category="other", spoiler_risk=False, reason=f"chat spike z={zscore:.1f}",
     )
 

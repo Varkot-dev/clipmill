@@ -83,9 +83,27 @@ def find_spikes(
     min_z: float = 3.0,
     min_gap_s: float = 90,
     min_chatters: int = 4,
+    fallback_top: int = 5,
 ) -> list[Spike]:
+    """Adapts to chat size: small chats get wider time buckets and need fewer distinct
+    reactors. If nothing clears the bar, the strongest few moments are returned anyway
+    (with their lower scores) so the judge can still look at them."""
     if not messages:
         return []
+    duration_s = duration_s or max(m.t for m in messages) + bucket_s
+    per_min = len(messages) / max(duration_s / 60, 1)
+    if per_min < 20:
+        bucket_s = bucket_s * min(6.0, 20 / max(per_min, 0.1))
+    if per_min < 30:
+        min_chatters = min(min_chatters, 3)
+    spikes = _detect(messages, duration_s, bucket_s, baseline_min, min_z, min_gap_s, min_chatters)
+    if not spikes and fallback_top:
+        loose = _detect(messages, duration_s, bucket_s, baseline_min, 1.5, min_gap_s, 2)
+        spikes = sorted(sorted(loose, key=lambda s: -s.zscore)[:fallback_top], key=lambda s: s.t)
+    return spikes
+
+
+def _detect(messages, duration_s, bucket_s, baseline_min, min_z, min_gap_s, min_chatters) -> list[Spike]:
     duration_s = duration_s or max(m.t for m in messages) + bucket_s
     n = int(duration_s // bucket_s) + 1
     activity = np.zeros(n)
