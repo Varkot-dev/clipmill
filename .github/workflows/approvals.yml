@@ -3,8 +3,10 @@
 name: approvals
 
 on:
-  schedule:
-    - cron: "7 * * * *"   # hourly
+  # Hourly schedule is off while clips post automatically (review = false in clipmill.toml);
+  # every scheduled job bills at least a minute of the free allowance. Turn it back on with:
+  #   schedule:
+  #     - cron: "7 * * * *"
   workflow_dispatch:
 
 permissions:

@@ -37,8 +37,10 @@ def scan(cfg: Config, db: DB, tw: Twitch, limit: int | None = None) -> list[tupl
             continue
         for i, v in enumerate(vods):
             if live and i == 0:
-                log.info("%s is live, skipping the in-progress VOD %s", s.login, v["id"])
-                continue
+                if not cfg.section("detect").get("live_vods", True):
+                    log.info("%s is live, skipping the in-progress VOD %s", s.login, v["id"])
+                    continue
+                v["live"] = True  # long streams and marathons: clip the finished part as we go
             if db.upsert_vod(v, s.login):
                 log.info("new VOD %s from %s: %s", v["id"], s.login, v["title"])
             found.append((s, v))
@@ -47,7 +49,17 @@ def scan(cfg: Config, db: DB, tw: Twitch, limit: int | None = None) -> list[tupl
 
 def pending_vods(cfg: Config, db: DB, tw: Twitch, max_vods: int | None = None) -> list[tuple[Streamer, dict]]:
     done = {r["id"] for r in db.vods("done")}
-    todo = [(s, v) for s, v in scan(cfg, db, tw) if v["id"] not in done]
+    d = cfg.section("detect")
+    todo = []
+    for s, v in scan(cfg, db, tw):
+        if v["id"] in done:
+            continue
+        until = float(db.get(f"until:{v['id']}", "0") or 0)
+        if v.get("live"):
+            ready = (v.get("duration_s") or 0) - d.get("live_buffer_seconds", 1200)
+            if ready - until < d.get("live_min_new_seconds", 3600):
+                continue  # not enough new stream since the last pass
+        todo.append((s, v))
     todo.sort(key=lambda sv: sv[1].get("created_at") or "", reverse=True)  # newest first
     return todo[:max_vods] if max_vods else todo
 
@@ -69,6 +81,10 @@ def process_vod(cfg: Config, db: DB, tw: Twitch, s: Streamer, vod: dict) -> list
     from .stats import judge_history
     history = judge_history(db)
 
+    from_s = float(db.get(f"until:{vod['id']}", "0") or 0)
+    to_s = (vod.get("duration_s") or 0) - (d.get("live_buffer_seconds", 1200) if vod.get("live") else 0)
+    if vod.get("live"):
+        (work / "chat.json").unlink(missing_ok=True)  # the stream has grown since last time
     chat_file = fetch.download_chat(vod["id"], work / "chat.json")
     messages = chat.load_chat(chat_file)
     spikes = chat.find_spikes(messages, vod.get("duration_s"), d.get("bucket_seconds", 5),
@@ -82,9 +98,11 @@ def process_vod(cfg: Config, db: DB, tw: Twitch, s: Streamer, vod: dict) -> list
             log.info("could not load viewer clips: %s", e)
     spikes = chat.boost_with_viewer_clips(spikes, vclips, d.get("viewer_clip_boost", 2.0),
                                           d.get("lead_seconds", 50))
+    spikes = [sp for sp in spikes if from_s + 60 <= sp.t <= to_s]
     spikes = spikes[: d.get("max_candidates_per_vod", 12)]
-    log.info("VOD %s (%s): %d chat messages, %d candidate moments", vod["id"], s.login,
-             len(messages), len(spikes))
+    log.info("VOD %s (%s): %d chat messages, %d candidate moments between %.1fh and %.1fh%s",
+             vod["id"], s.login, len(messages), len(spikes), from_s / 3600, to_s / 3600,
+             " (still live)" if vod.get("live") else "")
 
     lead, tail = d.get("lead_seconds", 50), d.get("tail_seconds", 15)
     made = []
@@ -139,7 +157,8 @@ def process_vod(cfg: Config, db: DB, tw: Twitch, s: Streamer, vod: dict) -> list
                 f.unlink(missing_ok=True)
             if in_ci:
                 window.unlink(missing_ok=True)  # runners have limited disk
-    db.set_vod_status(vod["id"], "done")
+    db.put(f"until:{vod['id']}", to_s)
+    db.set_vod_status(vod["id"], "partial" if vod.get("live") else "done")
     return made
 
 
