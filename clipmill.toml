@@ -61,7 +61,8 @@ platforms = ["instagram"]
 state_file = "cr_state.json"
 
 [instagram]
-api_host = "https://graph.instagram.com"
+api_host = "https://graph.facebook.com"
+user_id = "17841470543539884"   # @gta6momentsclips2026
 api_version = "v23.0"
 share_to_feed = true
 

@@ -120,6 +120,8 @@ def live_token(db, base_token: str, session: requests.Session | None = None, now
     log = logging.getLogger(__name__)
     if not base_token:
         return ""
+    if base_token.startswith("EAA"):  # business system-user token from Meta: never expires
+        return base_token
     now = time.time() if now is None else now
     token = base_token
     stored = db.get("ig_token_enc")
