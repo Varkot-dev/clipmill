@@ -35,9 +35,38 @@ def refresh_instagram_views(cfg, db, max_clips: int = 40) -> int:
     for r in rows:
         views = ig.views(r["instagram_id"])
         if views is not None:
-            db.update_clip(r["id"], views=views)
+            db.update_clip(r["id"], ig_views=views)
             n += 1
     db.put("views_checked_at", time.time())
+    return n
+
+
+def refresh_youtube_views(cfg, db, max_clips: int = 50) -> int:
+    from . import youtube
+    rows = db.conn.execute(
+        "SELECT id, youtube_id FROM clips WHERE youtube_id IS NOT NULL ORDER BY id DESC LIMIT ?",
+        (max_clips,)).fetchall()
+    yt_cfg = cfg.section("youtube")
+    token_file = cfg.root / yt_cfg.get("token_file", "youtube_token.json")
+    if not rows or not youtube.available(token_file):
+        return 0
+    try:
+        yt = youtube.client(cfg.root / yt_cfg.get("client_secrets", "client_secret.json"), token_file)
+        counts = youtube.view_counts(yt, [r["youtube_id"] for r in rows])
+    except Exception as e:
+        log.info("YouTube view refresh skipped: %s", e)
+        return 0
+    for r in rows:
+        if r["youtube_id"] in counts:
+            db.update_clip(r["id"], yt_views=counts[r["youtube_id"]])
+    return len(counts)
+
+
+def refresh_all(cfg, db) -> int:
+    n = refresh_instagram_views(cfg, db) + refresh_youtube_views(cfg, db)
+    db.conn.execute("UPDATE clips SET views = COALESCE(ig_views, 0) + COALESCE(yt_views, 0) "
+                    "WHERE ig_views IS NOT NULL OR yt_views IS NOT NULL")
+    db.conn.commit()
     return n
 
 

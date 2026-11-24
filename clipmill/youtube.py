@@ -77,8 +77,10 @@ def upload(yt, path: Path, title: str, description: str, tags: list[str], *,
         "snippet": {"title": title[:100], "description": description[:4900], "tags": tags[:30],
                     "categoryId": category_id},
         "status": {"privacyStatus": privacy, "selfDeclaredMadeForKids": False},
+        # these are paid campaign clips: tick YouTube's paid promotion disclosure
+        "paidProductPlacementDetails": {"hasPaidProductPlacement": True},
     }
-    request = yt.videos().insert(part="snippet,status", body=body,
+    request = yt.videos().insert(part="snippet,status,paidProductPlacementDetails", body=body,
                                  media_body=MediaFileUpload(str(path), chunksize=-1, resumable=True))
     response = None
     while response is None:

@@ -13,6 +13,15 @@ from .db import DB
 log = logging.getLogger("clipmill")
 
 
+def _tags(*tags: str) -> str:
+    seen, out = set(), []
+    for t in tags:
+        if t and t.lower() not in seen:
+            seen.add(t.lower())
+            out.append(t)
+    return " ".join(out)
+
+
 def description(s: Streamer, title: str) -> str:
     tag = "#GTA6" if "6" in s.game else "#GTARP"
     return "\n".join([
@@ -20,15 +29,16 @@ def description(s: Streamer, title: str) -> str:
         "#ad Paid clip.",
         f"Streamer: {s.display} ({s.handle_text})",
         f"Watch the full stream at {s.handle_text}", "",
-        " ".join([tag, f"#{s.display.replace(' ', '')}", *s.hashtags, "#shorts"]),
+        _tags(tag, f"#{s.display.replace(' ', '')}", *s.hashtags, "#shorts"),
     ])
 
 
 def instagram_caption(s: Streamer, title: str) -> str:
     tag = "#gta6 #gtavi" if "6" in s.game else "#gtarp"
-    extra = " ".join(h for h in s.hashtags if h.lower() != f"#{s.display.replace(' ', '').lower()}")
-    tags = f"{tag} #gaming #twitch #{s.display.replace(' ', '').lower()} {extra}".strip()
-    return f"#ad {title}\n\nStreamer: {s.display} ({s.handle_text})\n\n{tags}"
+    tags = _tags(*tag.split(), "#gaming", "#twitch", *s.hashtags, f"#{s.display.replace(' ', '').lower()}",
+                 "#gtaclips", "#funnymoments")
+    return (f"#ad {title}\n\nStreamer: {s.display} ({s.handle_text})\n"
+            f"Follow for new GTA 6 moments every day\n\n{tags}")
 
 
 def enabled_platforms(cfg: Config) -> list[str]:

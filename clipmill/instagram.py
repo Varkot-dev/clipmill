@@ -50,6 +50,7 @@ class Instagram:
         created = self._check(self.http.post(self._url(f"{self.user_id}/media"), data={
             "media_type": "REELS", "upload_type": "resumable", "caption": caption[:2200],
             "share_to_feed": "true" if share_to_feed else "false", "access_token": self.token,
+            "thumb_offset": "1200",  # cover frame: gameplay with the hook on screen, not a black first frame
         }, timeout=60))
         container = created["id"]
         upload_url = created.get("uri") or RUPLOAD.format(version=self.version, container=container)

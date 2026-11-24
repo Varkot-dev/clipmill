@@ -51,6 +51,8 @@ MIGRATIONS = {
     "instagram_url": "TEXT",
     "cr_submitted": "TEXT",
     "cr_error": "TEXT",
+    "ig_views": "INTEGER",
+    "yt_views": "INTEGER",
 }
 
 

@@ -137,7 +137,7 @@ def _run(args):
                      f"{dropped} weaker clip(s) dropped")
         lines += publish_approved(cfg, db, tg)
         from . import stats
-        if stats.refresh_instagram_views(cfg, db):
+        if stats.refresh_all(cfg, db):
             lines += ["Views so far: " + l for l in stats.report(db)]
     elif tg:
         sent = notify_new(cfg, db, tg)
