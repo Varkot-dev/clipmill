@@ -113,6 +113,11 @@ def publish_approved(cfg: Config, db: DB, tg: Telegram | None) -> list[str]:
         if db.clips("approved"):
             lines.append("Approved clips are waiting, but no YouTube or Instagram login is set up yet.")
         return lines
+    if "instagram" in publish.enabled_platforms(cfg):
+        # clips already on YouTube before Instagram was connected get posted there too
+        for c in db.clips("uploaded"):
+            if not c["instagram_id"] and c["artifact_run_id"]:
+                db.update_clip(c["id"], status="approved")
     for clip in db.clips("approved"):
         if budget <= 0:
             lines.append(f"Clip #{clip['id']} is approved and queued for the next run (daily cap reached).")
