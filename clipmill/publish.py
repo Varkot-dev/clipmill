@@ -105,7 +105,8 @@ def publish(cfg: Config, db: DB, clip, path: Path) -> dict[str, str]:
     elif clip["instagram_id"]:
         results["instagram"] = f"instagram media {clip['instagram_id']}"
 
-    if "tiktok" in enabled_platforms(cfg) and not clip["tiktok_publish_id"]:
+    if "tiktok" in enabled_platforms(cfg) and not clip["tiktok_publish_id"] \
+            and db.get("tt_inbox_full_until", "") < datetime.now(timezone.utc).isoformat():
         try:
             from . import tiktok
 
@@ -115,8 +116,15 @@ def publish(cfg: Config, db: DB, clip, path: Path) -> dict[str, str]:
             db.update_clip(clip["id"], tiktok_publish_id=pid, tiktok_caption=tiktok.caption(s, title))
             results["tiktok"] = "draft sent to the TikTok app"
         except Exception as e:
-            log.exception("TikTok draft upload failed for clip %s", clip["id"])
-            errors.append(f"TikTok: {e}")
+            if "spam_risk_too_many_pending_share" in str(e):
+                # TikTok's inbox is full of unposted drafts; pause TikTok for a few hours
+                until = datetime.now(timezone.utc).timestamp() + 3 * 3600
+                db.put("tt_inbox_full_until", datetime.fromtimestamp(until, timezone.utc).isoformat())
+                log.info("TikTok inbox is full of unposted drafts; pausing TikTok uploads for 3 hours")
+                results.setdefault("tiktok", "skipped: post or delete the drafts waiting in your TikTok app")
+            else:
+                log.exception("TikTok draft upload failed for clip %s", clip["id"])
+                errors.append(f"TikTok: {e}")
 
     if results:
         db.update_clip(clip["id"], status="uploaded",

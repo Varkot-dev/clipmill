@@ -60,7 +60,22 @@ def _dismiss_popups(page) -> None:
 
 
 def submit(campaign_url: str, post_url: str, state: dict, shots_dir: Path | None = None,
-           timeout_ms: int = 30000) -> str:
+           timeout_ms: int = 30000, attempts: int = 3) -> str:
+    """Tries a few times: Content Rewards sometimes rate-limits (429) and the page loads empty."""
+    import time
+    for i in range(attempts):
+        try:
+            return _submit_once(campaign_url, post_url, state, shots_dir, timeout_ms)
+        except SessionExpired:
+            raise
+        except Exception:
+            if i == attempts - 1:
+                raise
+            time.sleep(20 * (i + 1))
+
+
+def _submit_once(campaign_url: str, post_url: str, state: dict, shots_dir: Path | None = None,
+                 timeout_ms: int = 30000) -> str:
     """Returns a short status string. Raises SessionExpired if the saved login stopped working."""
     from playwright.sync_api import sync_playwright
 
