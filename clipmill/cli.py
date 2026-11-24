@@ -93,8 +93,34 @@ def cmd_process(args):
     _summary(_process(cfg, db, args), "clipmill: new clips")
 
 
+class _Problems(logging.Handler):
+    """Collects warnings and errors from clipmill so a run with problems ends as failed,
+    which makes GitHub email the repo owner."""
+
+    def __init__(self):
+        super().__init__(logging.WARNING)
+        self.items: list[str] = []
+
+    def emit(self, record):
+        msg = record.getMessage().splitlines()[0][:200]
+        if msg not in self.items:
+            self.items.append(msg)
+
+
 def cmd_run(args):
     """Cloud entry point: make clips from new VODs, then send them to your phone for review."""
+    problems = _Problems()
+    logging.getLogger("clipmill").addHandler(problems)
+    try:
+        _run(args)
+    finally:
+        logging.getLogger("clipmill").removeHandler(problems)
+    if problems.items and os.environ.get("CI"):
+        _summary(problems.items, "Problems (this run is marked failed so GitHub emails you)")
+        sys.exit(1)
+
+
+def _run(args):
     from .review_flow import notify_new, telegram_from_env
 
     cfg, db = _ctx(args)
