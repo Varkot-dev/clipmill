@@ -4,7 +4,7 @@ name: make clips
 
 on:
   schedule:
-    - cron: "23 */6 * * *"   # every 6 hours
+    - cron: "23 */3 * * *"   # every 6 hours
   workflow_dispatch:
     inputs:
       max_vods:
