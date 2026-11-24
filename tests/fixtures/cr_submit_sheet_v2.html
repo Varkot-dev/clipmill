@@ -1,0 +1,27 @@
+<!doctype html><html><body>
+<h1>Kai Cenat GTA 6 Pool</h1>
+<button id="opener">Submit clip</button>
+<div id="promo" role="dialog" style="position:fixed;inset:0;background:#000c;z-index:9">
+  <p>Support is here</p><button id="later">Not now</button>
+</div>
+<div id="sheet" role="dialog" style="display:none">
+  <h2>Choose clips</h2>
+  <button class="tile" aria-pressed="true">7 min left @gta6momentsclips2026 newest post</button>
+  <button class="tile" aria-pressed="false">6 min left @gta6moments-x9h other post</button>
+  <label><input aria-label="Clip link" type="url" placeholder="Paste a link"></label>
+  <label><input type="checkbox" id="agree"> I've read the requirements</label>
+  <button id="go">Submit clip</button>
+</div>
+<pre id="log"></pre>
+<script>
+const $=id=>document.getElementById(id);
+$('later').addEventListener('click',()=>{$('promo').style.display='none'});
+$('opener').addEventListener('click',()=>{$('sheet').style.display='block'});
+const label=()=>{const n=[...document.querySelectorAll('.tile')].filter(t=>t.getAttribute('aria-pressed')==='true').length
+  + (document.querySelector('[aria-label="Clip link"]').value?1:0); $('go').textContent=n>1?`Submit ${n} clips`:'Submit clip';};
+document.querySelectorAll('.tile').forEach(t=>t.addEventListener('click',()=>{t.setAttribute('aria-pressed',t.getAttribute('aria-pressed')==='true'?'false':'true');label();}));
+document.querySelector('[aria-label="Clip link"]').addEventListener('input',label); label();
+$('go').addEventListener('click',()=>{const l=document.querySelector('[aria-label="Clip link"]').value;
+ const extra=[...document.querySelectorAll('.tile')].some(t=>t.getAttribute('aria-pressed')==='true');
+ $('log').textContent=!$('agree').checked?'NOT AGREED':extra?'error: extra tiles submitted':'OK '+l; document.title=$('log').textContent;});
+</script></body></html>

@@ -325,6 +325,10 @@ def test_content_rewards_bot_fills_the_form(tmp_path):
     try:
         assert contentrewards.submit(url, "https://www.instagram.com/reel/ABC/", {"cookies": [], "origins": []},
                                      timeout_ms=10000) == "submitted"
+        # newer sheet: a promo popup on top, a preselected post tile, a button label that changes
+        v2 = url.replace("cr_submit_form.html", "cr_submit_sheet_v2.html")
+        assert contentrewards.submit(v2, "https://www.instagram.com/reel/ABC/", {"cookies": [], "origins": []},
+                                     timeout_ms=10000) == "submitted"
     finally:
         server.shutdown()
 

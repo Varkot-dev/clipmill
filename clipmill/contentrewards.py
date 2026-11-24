@@ -47,6 +47,18 @@ def login(state_path: Path, timeout_s: int = 600) -> None:
         browser.close()
 
 
+def _dismiss_popups(page) -> None:
+    """Closes the "Support is here" style announcement that can cover the page."""
+    for label in ("Not now", "Got it", "Close"):
+        try:
+            btn = page.get_by_role("button", name=label, exact=True)
+            if btn.count() and btn.first.is_visible():
+                btn.first.click(timeout=2000)
+                page.wait_for_timeout(300)
+        except Exception:
+            pass
+
+
 def submit(campaign_url: str, post_url: str, state: dict, shots_dir: Path | None = None,
            timeout_ms: int = 30000) -> str:
     """Returns a short status string. Raises SessionExpired if the saved login stopped working."""
@@ -61,16 +73,25 @@ def submit(campaign_url: str, post_url: str, state: dict, shots_dir: Path | None
             page.wait_for_timeout(2500)
             if "/login" in page.url:
                 raise SessionExpired("Content Rewards login expired; run `clipmill cr-login` on your Mac")
+            _dismiss_popups(page)
             page.get_by_role("button", name="Submit clip").first.click(timeout=timeout_ms)
             link = page.locator('input[aria-label="Clip link"]')
             link.wait_for(state="visible", timeout=timeout_ms)
+            _dismiss_popups(page)
+            # The sheet preselects recent posts as tiles; clear them so only our link is submitted.
+            dialog_root = link.locator("xpath=ancestor::*[.//input[@type='checkbox']][1]")
+            for tile in dialog_root.locator('button[aria-pressed="true"]').all():
+                try:
+                    tile.click(timeout=3000)
+                except Exception:
+                    pass
             link.fill(post_url)
             page.wait_for_timeout(1500)  # the form checks the link against your connected accounts
-            dialog_root = link.locator("xpath=ancestor::*[.//input[@type='checkbox']][1]")
             box = dialog_root.locator('input[type="checkbox"]').first
             if not box.is_checked():
                 box.check(force=True)
-            dialog_root.get_by_role("button", name="Submit clip").last.click(timeout=timeout_ms)
+            import re
+            dialog_root.get_by_role("button", name=re.compile(r"^Submit")).last.click(timeout=timeout_ms)
             page.wait_for_timeout(4000)
             text = page.locator("body").inner_text()
             for bad in ("already been submitted", "older than", "not connected", "Invalid", "couldn't", "error"):

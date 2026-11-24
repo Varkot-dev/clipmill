@@ -90,8 +90,19 @@ def access_token(db, client_key: str, client_secret: str, base_refresh: str, htt
     raise RuntimeError(f"TikTok login expired; run `clipmill tiktok-login` on your Mac ({last_err})")
 
 
-def upload_draft(token: str, path: Path, http=None) -> str:
-    """Sends a video to the creator's TikTok inbox. Returns the publish_id."""
+def upload_draft(token: str, path: Path, http=None, attempts: int = 3) -> str:
+    """Sends a video to the creator's TikTok inbox. Returns the publish_id. Retries brief
+    TikTok outages (503s happen)."""
+    for i in range(attempts):
+        try:
+            return _upload_draft_once(token, path, http)
+        except RuntimeError as e:
+            if i == attempts - 1 or not any(c in str(e) for c in ("503", "502", "500", "429", "timeout")):
+                raise
+            time.sleep(10 * (i + 1))
+
+
+def _upload_draft_once(token: str, path: Path, http=None) -> str:
     http = http or requests
     path = Path(path)
     size = path.stat().st_size

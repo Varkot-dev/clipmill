@@ -6,6 +6,8 @@ workflow artifact of the run that made them, so they are downloaded again when y
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 import logging
 import os
 import shutil
@@ -125,11 +127,16 @@ def publish_approved(cfg: Config, db: DB, tg: Telegram | None) -> list[str]:
         if db.clips("approved"):
             lines.append("Approved clips are waiting, but no YouTube or Instagram login is set up yet.")
         return lines
-    if "instagram" in publish.enabled_platforms(cfg):
-        # clips already on YouTube before Instagram was connected get posted there too
-        for c in db.clips("uploaded"):
-            if not c["instagram_id"] and c["artifact_run_id"]:
-                db.update_clip(c["id"], status="approved")
+    plats = publish.enabled_platforms(cfg)
+    # a clip that missed a platform (it was connected later, or it had an outage) gets another go
+    for c in db.clips("uploaded"):
+        if not c["artifact_run_id"]:
+            continue
+        missing_ig = "instagram" in plats and not c["instagram_id"]
+        missing_tt = "tiktok" in plats and not c["tiktok_publish_id"] and (c["uploaded_at"] or "") >= \
+            (datetime.now(timezone.utc) - timedelta(days=2)).strftime("%Y-%m-%d %H:%M:%S")
+        if missing_ig or missing_tt:
+            db.update_clip(c["id"], status="approved")
     prime = in_prime_hours(auto.get("prime_hours_et", [[12, 24]]))
     filler_left = auto.get("max_filler_per_day", 4) - db.conn.execute(
         "SELECT COUNT(*) FROM clips c WHERE uploaded_at >= date('now') AND streamer IN (%s)" %
