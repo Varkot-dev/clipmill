@@ -144,14 +144,15 @@ def publish_approved(cfg: Config, db: DB, tg: Telegram | None) -> list[str]:
     queue = sorted(db.clips("approved"), key=lambda c: (c["streamer"] in _fillers(cfg), -(c["score"] or 0)))
     for clip in queue:
         is_filler = clip["streamer"] in _fillers(cfg)
-        if not is_filler and not prime:
+        retry = bool(clip["youtube_id"] or clip["instagram_id"])  # only a missed platform left
+        if not retry and not is_filler and not prime:
             lines.append(f"Clip #{clip['id']} waits for prime hours to post.")
             continue
-        if is_filler:
+        if is_filler and not retry:
             if filler_left <= 0:
                 continue
             filler_left -= 1
-        if budget <= 0:
+        if budget <= 0 and not retry:
             lines.append(f"Clip #{clip['id']} is approved and queued for the next run (daily cap reached).")
             continue
         try:
@@ -162,7 +163,7 @@ def publish_approved(cfg: Config, db: DB, tg: Telegram | None) -> list[str]:
             db.update_clip(clip["id"], upload_error=str(e)[:500])
             results = {}
         fresh = db.clip(clip["id"])
-        if results:
+        if results and not retry:
             budget -= 1
             links = "\n".join(f"{k}: {v}" for k, v in results.items())
             msg = f"Posted clip #{clip['id']}:\n{links}"

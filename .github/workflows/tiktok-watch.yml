@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  actions: write   # restart the clip run when GitHub skipped its schedule
 
 concurrency:
   group: clipmill-state   # shares the database with the clip runs
@@ -26,6 +27,17 @@ jobs:
       TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
       CR_STATE_JSON: ${{ secrets.CR_STATE_JSON }}
     steps:
+      - name: Start a clip run if GitHub skipped the 3-hourly schedule
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          last=$(gh run list -R "$GITHUB_REPOSITORY" --workflow clips.yml -L 1 --json createdAt,status -q '.[0].createdAt + " " + .[0].status')
+          ts=$(date -d "${last%% *}" +%s 2>/dev/null || echo 0)
+          age=$(( $(date +%s) - ts ))
+          echo "last clip run: $last ($((age/60)) min ago)"
+          if [ "$age" -gt 12600 ] && [[ "$last" != *in_progress* ]] && [[ "$last" != *queued* ]]; then
+            gh workflow run clips.yml -R "$GITHUB_REPOSITORY" && echo "started a clip run"
+          fi
       - name: Skip until TikTok is connected
         id: gate
         run: echo "on=${{ secrets.TIKTOK_REFRESH_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
