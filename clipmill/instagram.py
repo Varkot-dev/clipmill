@@ -46,11 +46,20 @@ class Instagram:
 
     def publish_reel(self, path: Path, caption: str, share_to_feed: bool = True,
                      poll_seconds: int = 5, max_wait: int = 600) -> str:
+        return self._publish(path, {
+            "media_type": "REELS", "caption": caption[:2200],
+            "share_to_feed": "true" if share_to_feed else "false",
+            "thumb_offset": "1200",  # cover frame: gameplay with the hook on screen, not a black first frame
+        }, poll_seconds, max_wait)
+
+    def publish_story(self, path: Path, poll_seconds: int = 5, max_wait: int = 600) -> str:
+        """Post the same vertical clip to the page's Story (stories take no caption)."""
+        return self._publish(path, {"media_type": "STORIES"}, poll_seconds, max_wait)
+
+    def _publish(self, path: Path, fields: dict, poll_seconds: int, max_wait: int) -> str:
         path = Path(path)
         created = self._check(self.http.post(self._url(f"{self.user_id}/media"), data={
-            "media_type": "REELS", "upload_type": "resumable", "caption": caption[:2200],
-            "share_to_feed": "true" if share_to_feed else "false", "access_token": self.token,
-            "thumb_offset": "1200",  # cover frame: gameplay with the hook on screen, not a black first frame
+            **fields, "upload_type": "resumable", "access_token": self.token,
         }, timeout=60))
         container = created["id"]
         upload_url = created.get("uri") or RUPLOAD.format(version=self.version, container=container)

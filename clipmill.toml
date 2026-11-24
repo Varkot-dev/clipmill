@@ -67,6 +67,7 @@ api_host = "https://graph.facebook.com"
 user_id = "17841470543539884"   # @gta6momentsclips2026
 api_version = "v23.0"
 share_to_feed = true
+stories_per_day = 10           # also post each new Reel to the Story, up to this many a day
 
 # ---------------------------------------------------------------------------
 # Streamers: only ones running a campaign we joined (Content Rewards, Nov 2026).

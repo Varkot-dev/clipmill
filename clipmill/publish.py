@@ -95,6 +95,7 @@ def publish(cfg: Config, db: DB, clip, path: Path) -> dict[str, str]:
             link = ig.permalink(mid)
             db.update_clip(clip["id"], instagram_id=mid, instagram_url=link or None)
             results["instagram"] = link or f"instagram media {mid}"
+            _share_to_story(ig, ig_cfg, db, path, clip["id"])
             if link:
                 note = submit_to_campaign(cfg, db, clip["id"], s, "instagram", link)
                 if note:
@@ -161,3 +162,18 @@ def submit_to_campaign(cfg: Config, db: DB, clip_id: int, s: Streamer, platform:
         log.exception("Content Rewards submission failed for clip %s", clip_id)
         db.update_clip(clip_id, cr_error=str(e)[:500])
         return f"NOT submitted ({str(e)[:150]}). Submit by hand within 30 min: {s.campaign_url}"
+
+
+def _share_to_story(ig, ig_cfg: dict, db, path, clip_id) -> None:
+    """Also post the clip to the page's Story, up to stories_per_day a day. Never blocks the Reel."""
+    limit = int(ig_cfg.get("stories_per_day", 10))
+    key = "ig_stories_" + datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    done = int(db.get(key, "0") or 0)
+    if limit <= 0 or done >= limit:
+        return
+    try:
+        ig.publish_story(path)
+        db.put(key, str(done + 1))
+        log.info("Shared clip %s to the Instagram Story", clip_id)
+    except Exception as e:  # a Story is a bonus; the Reel already posted
+        log.info("Could not share clip %s to the Story: %s", clip_id, e)
