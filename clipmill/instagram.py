@@ -75,6 +75,20 @@ class Instagram:
             "creation_id": container, "access_token": self.token}, timeout=60))
         return published["id"]
 
+    def views(self, media_id: str) -> int | None:
+        """Total views of a Reel, or None if Instagram will not say yet."""
+        for metric in ("views", "plays"):
+            try:
+                data = self._check(self.http.get(self._url(f"{media_id}/insights"), params={
+                    "metric": metric, "access_token": self.token}, timeout=30))
+                vals = data.get("data", [{}])[0]
+                if "total_value" in vals:
+                    return int(vals["total_value"].get("value", 0))
+                return int(vals.get("values", [{}])[0].get("value", 0))
+            except Exception:
+                continue
+        return None
+
     def permalink(self, media_id: str) -> str:
         try:
             data = self._check(self.http.get(self._url(media_id), params={

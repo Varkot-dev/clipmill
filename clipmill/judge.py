@@ -140,7 +140,7 @@ def parse_claude_output(stdout: str) -> dict:
 
 
 def judge(*, words: list[Word], chat_sample: list[str], spike_rel: float, category: str,
-          zscore: float, window_len: float, streamer, cfg_judge: dict) -> Verdict:
+          zscore: float, window_len: float, streamer, cfg_judge: dict, history: str = "") -> Verdict:
     if cfg_judge.get("mode", "claude") != "claude":
         return heuristic(spike_rel, words, zscore, window_len)
     prompt = PROMPT.format(
@@ -151,6 +151,8 @@ def judge(*, words: list[Word], chat_sample: list[str], spike_rel: float, catego
     )
     if getattr(streamer, "notes", ""):
         prompt += f"\nCampaign brief from the streamer: {streamer.notes}\n"
+    if history:
+        prompt += "\n" + history + "\n"
     try:
         out = ask_claude(prompt, cfg_judge.get("claude_bin", "claude"), cfg_judge.get("model", ""))
     except (FileNotFoundError, RuntimeError, subprocess.TimeoutExpired, json.JSONDecodeError) as e:

@@ -136,6 +136,9 @@ def _run(args):
         lines.append(f"Auto mode: {approved} clip(s) scored {auto.get('min_score', 8)}+ and were approved, "
                      f"{dropped} weaker clip(s) dropped")
         lines += publish_approved(cfg, db, tg)
+        from . import stats
+        if stats.refresh_instagram_views(cfg, db):
+            lines += ["Views so far: " + l for l in stats.report(db)]
     elif tg:
         sent = notify_new(cfg, db, tg)
         if sent:

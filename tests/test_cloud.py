@@ -326,3 +326,17 @@ def test_content_rewards_bot_fills_the_form(tmp_path):
                                      timeout_ms=10000) == "submitted"
     finally:
         server.shutdown()
+
+
+def test_judge_history_needs_enough_posts(tmp_path):
+    from clipmill.db import DB
+    from clipmill import stats
+    db = DB(tmp_path / "s.db")
+    assert stats.judge_history(db) == ""
+    for i, v in enumerate([100, 5000, 300, 80000, 20, 900]):
+        cid = db.add_clip(vod_id="v", streamer="s", start_s=0, end_s=10, score=8, category="funny",
+                          title=f"t{i}", reason="", focus_hits=[], path="p", meta={"hook": f"h{i}"})
+        db.update_clip(cid, views=v, uploaded_at="2020-01-01 00:00:00")
+    h = stats.judge_history(db)
+    assert "80,000 views" in h and "20 views" in h
+    assert any("80,000" in l for l in stats.report(db))

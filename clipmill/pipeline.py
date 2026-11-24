@@ -66,6 +66,8 @@ def process_vod(cfg: Config, db: DB, tw: Twitch, s: Streamer, vod: dict) -> list
     out_dir.mkdir(parents=True, exist_ok=True)
     db.set_vod_status(vod["id"], "processing")
     in_ci = bool(os.environ.get("CI"))
+    from .stats import judge_history
+    history = judge_history(db)
 
     chat_file = fetch.download_chat(vod["id"], work / "chat.json")
     messages = chat.load_chat(chat_file)
@@ -98,7 +100,7 @@ def process_vod(cfg: Config, db: DB, tw: Twitch, s: Streamer, vod: dict) -> list
             hits = focus_hits(words, s.focus)
             v = judge.judge(words=words, chat_sample=sp.sample, spike_rel=sp.t - w_start,
                             category=sp.category, zscore=sp.zscore, window_len=w_end - w_start,
-                            streamer=s, cfg_judge=j)
+                            streamer=s, cfg_judge=j, history=history)
             score = v.score + (1 if hits else 0)
             if not v.keep or score < j.get("min_score", 6):
                 log.info("  #%d at %.0fs dropped (score %s): %s", n, sp.t, v.score, v.reason)
