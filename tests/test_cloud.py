@@ -340,3 +340,16 @@ def test_judge_history_needs_enough_posts(tmp_path):
     h = stats.judge_history(db)
     assert "80,000 views" in h and "20 views" in h
     assert any("80,000" in l for l in stats.report(db))
+
+
+def test_ask_claude_with_frames_uses_fake_cli(tmp_path):
+    import json, os, stat
+    from clipmill import judge
+    fake = tmp_path / "claude"
+    fake.write_text("#!/usr/bin/env python3\nimport sys, json, os\nsys.stdin.read()\n"
+                    "print(json.dumps({'type':'result','structured_output':{'ok':os.getcwd(),'args':sys.argv[1:]}}))\n")
+    fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
+    img = tmp_path / "w_f0.jpg"
+    img.write_bytes(b"x")
+    out = judge.ask_claude("hi", str(fake), "haiku", images=[(img, 12.0)])
+    assert out["ok"] == str(tmp_path) and "Read" in out["args"]

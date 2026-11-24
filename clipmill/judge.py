@@ -115,7 +115,7 @@ def ask_claude(prompt: str, claude_bin: str = "claude", model: str = "", timeout
         cmd += ["--model", model]
     cwd = None
     if images:
-        cwd = str(Path(images[0]).parent)
+        cwd = str(Path(images[0][0]).parent)
         cmd += ["--allowedTools", "Read"]
         prompt += ("\nStills from the window, in time order (open each with the Read tool before "
                    "deciding; they show what happened on screen):\n"

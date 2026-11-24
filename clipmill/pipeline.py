@@ -105,7 +105,7 @@ def process_vod(cfg: Config, db: DB, tw: Twitch, s: Streamer, vod: dict) -> list
              " (still live)" if vod.get("live") else "")
 
     lead, tail = d.get("lead_seconds", 50), d.get("tail_seconds", 15)
-    made = []
+    made, failed = [], 0
     for n, sp in enumerate(spikes):
         w_start = max(0.0, sp.t - lead - 15)
         w_end = min(vod.get("duration_s") or sp.t + tail + 10, sp.t + tail + 10)
@@ -151,12 +151,18 @@ def process_vod(cfg: Config, db: DB, tw: Twitch, s: Streamer, vod: dict) -> list
             made.append(cid)
             log.info("  #%d kept as clip %d (score %d): %s", n, cid, score, v.title)
         except Exception:
-            log.error("  #%d at %.0fs failed:\n%s", n, sp.t, traceback.format_exc(limit=3))
+            failed += 1
+            log.error("  #%d at %.0fs failed: %s", n, sp.t, traceback.format_exc(limit=3).strip().splitlines()[-1])
+            log.debug(traceback.format_exc())
         finally:
             for f in (work / f"win_{n:02d}.wav", work / f"win_{n:02d}.ass"):
                 f.unlink(missing_ok=True)
             if in_ci:
                 window.unlink(missing_ok=True)  # runners have limited disk
+    if spikes and failed == len(spikes):
+        # every candidate crashed: keep the VOD for the next run instead of skipping its moments
+        db.set_vod_status(vod["id"], "failed")
+        return made
     db.put(f"until:{vod['id']}", to_s)
     db.set_vod_status(vod["id"], "partial" if vod.get("live") else "done")
     return made
