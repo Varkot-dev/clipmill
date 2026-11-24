@@ -98,6 +98,7 @@ notes = "Brief: funniest and craziest GTA 6 moments, reactions, police chases, c
 
 [[streamers]]
 login = "asianjeff"
+enabled = false   # campaign paused: out of budget (Nov 24). Turn back on if it gets refilled.
 display = "AsianJeff"
 handle_text = "twitch.tv/asianjeff"
 campaign = "Content Rewards: AsianJeff GTA 6 ($1/1K, paid after 10K views, TikTok/IG/YouTube/X)"

@@ -152,6 +152,11 @@ def submit_to_campaign(cfg: Config, db: DB, clip_id: int, s: Streamer, platform:
         db.update_clip(clip_id, cr_submitted=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
                        cr_error=None)
         return f"submitted to {s.display}'s campaign"
+    except contentrewards.CampaignClosed as e:
+        db.update_clip(clip_id, cr_error=str(e)[:500])
+        log.warning("%s's campaign is closed (%s); set enabled = false for %s in clipmill.toml",
+                    s.display, e, s.login)
+        return f"not submitted: {s.display}'s campaign is closed ({e})"
     except Exception as e:
         log.exception("Content Rewards submission failed for clip %s", clip_id)
         db.update_clip(clip_id, cr_error=str(e)[:500])

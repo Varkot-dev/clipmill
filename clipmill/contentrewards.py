@@ -17,6 +17,10 @@ log = logging.getLogger("clipmill")
 BASE = "https://contentrewards.com"
 
 
+class CampaignClosed(RuntimeError):
+    """The campaign is paused, out of budget or ended; nothing to retry."""
+
+
 class SessionExpired(RuntimeError):
     pass
 
@@ -66,7 +70,7 @@ def submit(campaign_url: str, post_url: str, state: dict, shots_dir: Path | None
     for i in range(attempts):
         try:
             return _submit_once(campaign_url, post_url, state, shots_dir, timeout_ms)
-        except SessionExpired:
+        except (SessionExpired, CampaignClosed):
             raise
         except Exception:
             if i == attempts - 1:
@@ -89,6 +93,10 @@ def _submit_once(campaign_url: str, post_url: str, state: dict, shots_dir: Path 
             if "/login" in page.url:
                 raise SessionExpired("Content Rewards login expired; run `clipmill cr-login` on your Mac")
             _dismiss_popups(page)
+            body = page.locator("body").inner_text().lower()
+            for closed in ("out of budget", "campaign has ended", "campaign ended", "no longer accepting"):
+                if closed in body:
+                    raise CampaignClosed(f"campaign is closed ({closed})")
             page.get_by_role("button", name="Submit clip").first.click(timeout=timeout_ms)
             link = page.locator('input[aria-label="Clip link"]')
             link.wait_for(state="visible", timeout=timeout_ms)
