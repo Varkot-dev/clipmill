@@ -24,7 +24,7 @@ model = "haiku"             # smallest model; plenty for reading a transcript. "
 min_score = 6               # 1 to 10, clips below this are not rendered at all
 
 [transcribe]
-model = "base"              # faster-whisper: tiny, base, small. base is fast on cloud CPUs
+model = "small"             # faster-whisper: tiny, base, small. small hears game audio far better
 device = "auto"
 compute_type = "auto"
 

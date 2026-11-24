@@ -14,6 +14,7 @@ import logging
 import shutil
 import subprocess
 from dataclasses import dataclass
+from pathlib import Path
 
 from .transcribe import Word, as_timed_text
 
@@ -103,7 +104,8 @@ def heuristic(spike_rel: float, words: list[Word], zscore: float, window_len: fl
     )
 
 
-def ask_claude(prompt: str, claude_bin: str = "claude", model: str = "", timeout: int = 180) -> dict:
+def ask_claude(prompt: str, claude_bin: str = "claude", model: str = "", timeout: int = 180,
+               images: list | None = None) -> dict:
     binary = shutil.which(claude_bin)
     if not binary:
         raise FileNotFoundError("Claude Code CLI not found. Install it and log in (see SETUP.md).")
@@ -111,11 +113,19 @@ def ask_claude(prompt: str, claude_bin: str = "claude", model: str = "", timeout
            "--permission-mode", "dontAsk"]
     if model:
         cmd += ["--model", model]
+    cwd = None
+    if images:
+        cwd = str(Path(images[0]).parent)
+        cmd += ["--allowedTools", "Read"]
+        prompt += ("\nStills from the window, in time order (open each with the Read tool before "
+                   "deciding; they show what happened on screen):\n"
+                   + "\n".join(f"- {Path(p).name} at {t:.0f}s" for p, t in images) + "\n")
     env = os.environ.copy()
     tok = env.get("CLAUDE_CODE_OAUTH_TOKEN", "")
     if tok:  # a token copied from a wrapped terminal line can carry spaces or line breaks
         env["CLAUDE_CODE_OAUTH_TOKEN"] = "".join(tok.split())
-    proc = subprocess.run(cmd, input=prompt, capture_output=True, text=True, timeout=timeout, env=env)
+    proc = subprocess.run(cmd, input=prompt, capture_output=True, text=True, timeout=timeout, env=env,
+                          cwd=cwd)
     if proc.returncode != 0:
         detail = proc.stderr[-300:]
         try:
@@ -140,7 +150,8 @@ def parse_claude_output(stdout: str) -> dict:
 
 
 def judge(*, words: list[Word], chat_sample: list[str], spike_rel: float, category: str,
-          zscore: float, window_len: float, streamer, cfg_judge: dict, history: str = "") -> Verdict:
+          zscore: float, window_len: float, streamer, cfg_judge: dict, history: str = "",
+          frames: list | None = None) -> Verdict:
     if cfg_judge.get("mode", "claude") != "claude":
         return heuristic(spike_rel, words, zscore, window_len)
     prompt = PROMPT.format(
@@ -154,7 +165,8 @@ def judge(*, words: list[Word], chat_sample: list[str], spike_rel: float, catego
     if history:
         prompt += "\n" + history + "\n"
     try:
-        out = ask_claude(prompt, cfg_judge.get("claude_bin", "claude"), cfg_judge.get("model", ""))
+        out = ask_claude(prompt, cfg_judge.get("claude_bin", "claude"), cfg_judge.get("model", ""),
+                         timeout=int(cfg_judge.get("timeout", 240)), images=frames)
     except (FileNotFoundError, RuntimeError, subprocess.TimeoutExpired, json.JSONDecodeError) as e:
         # Never let a missing login or a Claude outage stop the run; fall back to chat-only scoring.
         log.warning("Claude judge unavailable (%s); using the chat-spike heuristic", str(e)[:200])

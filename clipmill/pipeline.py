@@ -98,9 +98,15 @@ def process_vod(cfg: Config, db: DB, tw: Twitch, s: Streamer, vod: dict) -> list
             words = transcribe.transcribe(audio, tr.get("model", "base"), tr.get("device", "auto"),
                                           tr.get("compute_type", "auto"))
             hits = focus_hits(words, s.focus)
+            frames = []
+            if j.get("frames", True):
+                rel = sp.t - w_start
+                times = [rel - 20, rel - 10, rel - 4, rel, rel + 4]
+                frames = fetch.extract_frames(window, times, work)
             v = judge.judge(words=words, chat_sample=sp.sample, spike_rel=sp.t - w_start,
                             category=sp.category, zscore=sp.zscore, window_len=w_end - w_start,
-                            streamer=s, cfg_judge=j, history=history)
+                            streamer=s, cfg_judge=j, history=history,
+                            frames=frames)
             score = v.score + (1 if hits else 0)
             if not v.keep or score < j.get("min_score", 6):
                 log.info("  #%d at %.0fs dropped (score %s): %s", n, sp.t, v.score, v.reason)

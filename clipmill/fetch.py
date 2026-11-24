@@ -99,3 +99,16 @@ def extract_audio(video: Path, out: Path) -> Path:
         check=True,
     )
     return out
+
+
+def extract_frames(video: Path, times: list[float], out_dir: Path, width: int = 640) -> list[tuple[Path, float]]:
+    """Saves small JPEG stills at the given window times so the judge can see the gameplay."""
+    paths = []
+    for i, t in enumerate(times):
+        out = out_dir / f"{video.stem}_f{i}.jpg"
+        r = subprocess.run([_need("ffmpeg"), "-y", "-loglevel", "error", "-ss", f"{max(0.0, t):.2f}",
+                            "-i", str(video), "-frames:v", "1", "-vf", f"scale={width}:-2", "-q:v", "5",
+                            str(out)])
+        if r.returncode == 0 and out.exists():
+            paths.append((out, t))
+    return paths
