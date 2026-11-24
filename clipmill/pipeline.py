@@ -106,7 +106,7 @@ def process_vod(cfg: Config, db: DB, tw: Twitch, s: Streamer, vod: dict) -> list
             out = out_dir / f"{vod['id']}_{n:02d}.mp4"
             ass = write_ass(work / f"win_{n:02d}.ass", words, v.start_s, v.end_s,
                             width=r.get("width", 1080), height=r.get("height", 1920),
-                            font=r.get("font", "Arial Black"), words_per_chunk=r.get("caption_words", 3),
+                            font=r.get("font", "Arial Black"), words_per_chunk=r.get("caption_words", 2),
                             caption_y=render.caption_y(s.facecam, r.get("width", 1080), r.get("height", 1920)),
                             handle_text=s.handle_text, hook=v.hook,
                             disclosure=r.get("disclosure", ""),

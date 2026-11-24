@@ -35,7 +35,8 @@ SCHEMA = {
     "required": ["keep", "score", "start_s", "end_s", "title", "category", "spoiler_risk", "reason", "hook"],
 }
 
-PROMPT = """You pick moments from {game} livestreams to post as YouTube Shorts and TikToks.
+PROMPT = """You are the editor of a funny GTA clip page. You pick moments from {game} livestreams
+to post as Instagram Reels and YouTube Shorts. Most moments are NOT funny enough. Be strict.
 
 Streamer: {display}
 Viewers reacted in chat at about {spike:.0f}s into this window (category guess: {category}).
@@ -48,19 +49,23 @@ Transcript of the window (timestamps are seconds from the start of the window):
 {transcript}
 
 Decide:
-- keep: true only if this is a complete moment a stranger would enjoy with no context:
-  a clear setup and a payoff (a joke, a reaction, a fail, a chase, an argument, a clutch play).
-- start_s / end_s: where to cut, in window seconds. Start right before the setup, end
-  just after the payoff or the laugh. Never start or end mid-sentence. 15 to 60 seconds.
-- score: 1 to 10 for how likely it is to do well as a Short.
-- title: under 70 characters, plain and specific, no clickbait lies, no emojis.
+- keep: true only if a stranger scrolling with zero context would laugh or say "no way":
+  a fail, a ridiculous reaction, an absurd NPC or cop moment, a chaotic chase, a perfect
+  one-liner, a rage moment. Talking to chat, reading donations, menus, settings, loading,
+  or story cutscenes are never kept.
+- start_s / end_s: as SHORT as possible. Start 1 to 3 seconds before the setup line, end
+  right after the payoff or the laugh, no lingering. Aim for 12 to 25 seconds, never over 35.
+  Never start or end mid-sentence.
+- score: 1 to 10, honest. 9-10: genuinely laugh-out-loud, would be shared. 7-8: funny with a
+  clear payoff. 5-6: mildly amusing. 1-4: boring, inside joke, or needs context.
+- title: under 60 characters, funny and specific, sounds like a meme page wrote it, no lies,
+  no emojis.
 - spoiler_risk: true if the moment is mainly a story cutscene, the game's ending, or a big
-  plot reveal. Rockstar takes those down, so they must not be kept. Gameplay and the
-  streamer's own reaction are fine.
+  plot reveal. Rockstar takes those down. Gameplay and the streamer's reaction are fine.
 - reason: one sentence.
-- hook: 3 to 8 words shown at the top of the video for the whole clip. It gives a stranger
-  the context and makes them want to see the payoff (for example "He thought the cop was
-  an NPC"). Plain words, no emojis, no hashtags, do not give away the punchline.
+- hook: 3 to 7 words shown at the top for the whole clip, written like a meme caption that
+  sets up the joke without spoiling it (for example "he really thought that was an NPC",
+  "cops in GTA 6 are not real", "bro was NOT ready"). Lowercase is fine. No emojis, no hashtags.
 """
 
 
@@ -91,7 +96,7 @@ def snap_to_words(words: list[Word], start: float, end: float, min_gap: float = 
 
 
 def heuristic(spike_rel: float, words: list[Word], zscore: float, window_len: float) -> Verdict:
-    start, end = snap_to_words(words, max(0.0, spike_rel - 35), min(window_len, spike_rel + 8))
+    start, end = snap_to_words(words, max(0.0, spike_rel - 20), min(window_len, spike_rel + 5))
     return Verdict(
         keep=zscore >= 2.5, score=max(1, min(10, int(zscore) + 3)), start_s=start, end_s=end,
         title="", category="other", spoiler_risk=False, reason=f"chat spike z={zscore:.1f}",
@@ -154,6 +159,9 @@ def judge(*, words: list[Word], chat_sample: list[str], spike_rel: float, catego
         return heuristic(spike_rel, words, zscore, window_len)
     v = Verdict(**{k: out.get(k, "") for k in SCHEMA["required"]})
     v.start_s, v.end_s = snap_to_words(words, max(0.0, v.start_s), min(window_len, v.end_s))
+    max_len = float(cfg_judge.get("max_seconds", 35))
+    if v.end_s - v.start_s > max_len:  # keep the payoff, drop the slow start
+        v.start_s = v.end_s - max_len
     if v.spoiler_risk:
         v.keep = False
     return v

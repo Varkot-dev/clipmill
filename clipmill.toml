@@ -41,7 +41,7 @@ caption_words = 3
 [auto]
 review = false              # false: clips scoring min_score+ post themselves, no review needed
                             # true:  every clip goes to Telegram with Post / Skip buttons first
-min_score = 8               # judge score needed to post automatically
+min_score = 7               # judge score needed to post automatically
 max_uploads_per_run = 2
 max_uploads_per_day = 6     # across all streamers, so the channel never floods
 platforms = ["youtube", "instagram"]   # a platform with no login set up is skipped

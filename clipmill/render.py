@@ -15,6 +15,14 @@ def _fill(w: int, h: int) -> str:
     return f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},setsar=1"
 
 
+def _zoom(region: list[float], keep: float = 0.72) -> list[float]:
+    """Crops the sides of a full-width frame so the gameplay is bigger on a phone."""
+    x, y, w, h = region
+    if w < 0.99:
+        return region
+    return [x + w * (1 - keep) / 2, y, w * keep, h]
+
+
 def vertical_filter(facecam: list[float], gameplay: list[float], w: int = 1080, h: int = 1920,
                     cam_share: float = 0.35) -> tuple[str, int]:
     """Returns (filtergraph ending in [v], y position for captions)."""
@@ -32,7 +40,7 @@ def vertical_filter(facecam: list[float], gameplay: list[float], w: int = 1080, 
     graph = (
         f"[0:v]split=2[a][b];"
         f"[a]{_fill(w, h)},boxblur=20:2[bg];"
-        f"[b]{_box(gameplay)},scale={w}:-2[fg];"
+        f"[b]{_box(_zoom(gameplay))},scale={w}:-2[fg];"
         f"[bg][fg]overlay=(W-w)/2:(H-h)/2[v]"
     )
     return graph, int(h * 0.75)
