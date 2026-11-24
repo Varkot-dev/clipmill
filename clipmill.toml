@@ -57,7 +57,7 @@ default_tags = ["GTA 6", "GTA VI", "GTA", "gaming", "shorts"]
 # Submit each post to its streamer's campaign right after it goes public (30-minute rule).
 submit = true
 # YouTube is left out until Google's audit lets uploads be public (private posts are rejected).
-platforms = ["instagram"]
+platforms = ["instagram", "youtube"]
 state_file = "cr_state.json"
 
 [instagram]
