@@ -37,7 +37,7 @@ SCHEMA = {
 }
 
 PROMPT = """You are the editor of a funny GTA clip page. You pick moments from {game} livestreams
-to post as Instagram Reels and YouTube Shorts. Most moments are NOT funny enough. Be strict.
+to post as Instagram Reels and YouTube Shorts. Many moments are not good enough; be honest, but do not reject a clear gameplay moment just because it is ordinary GTA chaos, that is exactly what this audience watches.
 
 Streamer: {display}
 Viewers reacted in chat at about {spike:.0f}s into this window (category guess: {category}).
@@ -57,8 +57,10 @@ Decide:
 - start_s / end_s: as SHORT as possible. Start 1 to 3 seconds before the setup line, end
   right after the payoff or the laugh, no lingering. Aim for 12 to 25 seconds, never over 35.
   Never start or end mid-sentence.
-- score: 1 to 10, honest. 9-10: genuinely laugh-out-loud, would be shared. 7-8: funny with a
-  clear payoff. 5-6: mildly amusing. 1-4: boring, inside joke, or needs context.
+- score: 1 to 10, honest. 9-10: genuinely laugh-out-loud, would be shared. 7-8: a clear
+  moment with a visible payoff and a real reaction (a crash, a fail, a death, a cop moment,
+  a wild NPC, a funny line). 5-6: watchable but slow or mild. 1-4: boring, menus, cutscenes,
+  talking to chat, or an inside joke.
 - title: under 60 characters, funny and specific, sounds like a meme page wrote it, no lies,
   no emojis.
 - spoiler_risk: true if the moment is mainly a story cutscene, the game's ending, or a big
