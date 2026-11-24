@@ -46,6 +46,7 @@ class Streamer:
     gameplay: list[float] = field(default_factory=lambda: [0.0, 0.0, 1.0, 1.0])
     enabled: bool = True
     notes: str = ""
+    hashtags: list = field(default_factory=list)  # tags a campaign requires in every caption
 
 
 @dataclass

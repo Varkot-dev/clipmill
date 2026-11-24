@@ -95,6 +95,19 @@ gameplay = [0.0, 0.0, 1.0, 1.0]
 notes = "Brief: funniest and craziest GTA 6 moments, reactions, police chases, chaotic gameplay."
 
 [[streamers]]
+login = "asianjeff"
+display = "AsianJeff"
+handle_text = "twitch.tv/asianjeff"
+campaign = "Content Rewards: AsianJeff GTA 6 ($1/1K, paid after 10K views, TikTok/IG/YouTube/X)"
+campaign_url = "https://contentrewards.com/c/campaigns/bbd3a963-9a23-457c-bc15-6697971d9902"
+game = "GTA 6"
+focus = ["Lucia", "Jason", "police", "chase"]
+facecam = []
+gameplay = [0.0, 0.0, 1.0, 1.0]
+hashtags = ["#AsianJeff"]
+notes = "Brief: GTA 6 playthrough from Nov 19 only. AsianJeff must be the main focus. Never show him in a negative light, no rage-bait or drama framing, English only."
+
+[[streamers]]
 login = "dasgasd3m"
 display = "Dasgasd3m"
 handle_text = "kick.com/dasgasd3m"
@@ -106,3 +119,4 @@ focus = ["Lucia", "Jason"]
 facecam = []
 gameplay = [0.0, 0.0, 1.0, 1.0]
 notes = "Brief: keep the setup, his reaction and the payoff; credit kick.com/dasgasd3m and #dasgasdom3; YouTube Shorts or TikTok only."
+hashtags = ["#dasgasdom3"]

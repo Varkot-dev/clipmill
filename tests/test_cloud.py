@@ -17,7 +17,7 @@ REPO = Path(__file__).parent.parent
 
 def test_committed_config_has_the_three_campaign_streamers():
     cfg = config.load(None, root=REPO)
-    assert [s.login for s in cfg.streamers] == ["bobby_vanriper", "darealboeshi", "dasgasd3m"]
+    assert [s.login for s in cfg.streamers] == ["bobby_vanriper", "darealboeshi", "asianjeff", "dasgasd3m"]
     assert cfg.section("auto")["platforms"] == ["youtube", "instagram"]
 
 

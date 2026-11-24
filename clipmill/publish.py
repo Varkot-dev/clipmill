@@ -20,13 +20,15 @@ def description(s: Streamer, title: str) -> str:
         "#ad Paid clip.",
         f"Streamer: {s.display} ({s.handle_text})",
         f"Watch the full stream at {s.handle_text}", "",
-        f"{tag} #{s.display.replace(' ', '')} #shorts",
+        " ".join([tag, f"#{s.display.replace(' ', '')}", *s.hashtags, "#shorts"]),
     ])
 
 
 def instagram_caption(s: Streamer, title: str) -> str:
     tag = "#gta6 #gtavi" if "6" in s.game else "#gtarp"
-    return f"#ad {title}\n\nStreamer: {s.display} ({s.handle_text})\n\n{tag} #gaming #twitch #{s.display.replace(' ', '').lower()}"
+    extra = " ".join(h for h in s.hashtags if h.lower() != f"#{s.display.replace(' ', '').lower()}")
+    tags = f"{tag} #gaming #twitch #{s.display.replace(' ', '').lower()} {extra}".strip()
+    return f"#ad {title}\n\nStreamer: {s.display} ({s.handle_text})\n\n{tags}"
 
 
 def enabled_platforms(cfg: Config) -> list[str]:
