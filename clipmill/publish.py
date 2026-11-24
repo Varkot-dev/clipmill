@@ -70,6 +70,9 @@ def publish(cfg: Config, db: DB, clip, path: Path) -> dict[str, str]:
                                  privacy=yt_cfg.get("privacy", "public"))
             db.update_clip(clip["id"], youtube_id=vid)
             results["youtube"] = f"https://youtube.com/shorts/{vid}"
+            note = submit_to_campaign(cfg, db, clip["id"], s, "youtube", results["youtube"])
+            if note:
+                results["content rewards (YouTube)"] = note
         except Exception as e:
             log.exception("YouTube upload failed for clip %s", clip["id"])
             errors.append(f"YouTube: {e}")

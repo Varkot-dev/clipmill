@@ -134,8 +134,7 @@ def publish_approved(cfg: Config, db: DB, tg: Telegram | None) -> list[str]:
             budget -= 1
             links = "\n".join(f"{k}: {v}" for k, v in results.items())
             msg = f"Posted clip #{clip['id']}:\n{links}"
-            if "youtube" in results:
-                msg += "\n(YouTube keeps API uploads private until the Google audit; tap the link to publish it in Studio.)"
+
         else:
             msg = f"Could not post clip #{clip['id']}: {fresh['upload_error']}"
         if fresh["upload_error"] and results:
