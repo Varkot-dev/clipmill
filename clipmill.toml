@@ -11,7 +11,7 @@ bucket_seconds = 5          # chat is counted in 5 second buckets
 baseline_minutes = 10       # rolling window used as "normal" chat speed
 min_zscore = 3.0            # how far above normal a spike must be
 min_gap_seconds = 90        # spikes closer than this are merged
-max_candidates_per_vod = 16 # candidates per VOD (or per new chunk of a live marathon)
+max_candidates_per_vod = 30 # candidates per VOD (or per new chunk of a live marathon)
 lead_seconds = 50           # chat reacts after the moment, so look back this far
 tail_seconds = 15
 viewer_clip_boost = 2.0     # extra score when a viewer already clipped that moment
@@ -42,10 +42,10 @@ caption_words = 3
 review = false              # false: clips scoring min_score+ post themselves, no review needed
                             # true:  every clip goes to Telegram with Post / Skip buttons first
 min_score = 5               # judge score needed to post automatically (5 = watchable; volume wins)
-max_uploads_per_run = 3
-max_uploads_per_day = 10    # across all streamers; clip pages post 8 to 12 a day
+max_uploads_per_run = 4
+max_uploads_per_day = 26    # about 20 Kai growth clips plus paid clips in prime hours
 prime_hours_et = [[12, 24]] # paid-campaign clips post only noon to midnight Eastern (most viewers)
-max_filler_per_day = 4      # growth clips from filler streamers, posted any time
+max_filler_per_day = 20     # Kai Cenat clips a day, posted any time
 platforms = ["youtube", "instagram", "tiktok"]   # a platform with no login set up is skipped
 
 [youtube]
