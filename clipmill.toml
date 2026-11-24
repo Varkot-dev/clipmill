@@ -56,7 +56,7 @@ default_tags = ["GTA 6", "GTA VI", "GTA", "gaming", "shorts"]
 [contentrewards]
 # Submit each post to its streamer's campaign right after it goes public (30-minute rule).
 submit = true
-# YouTube is left out until Google's audit lets uploads be public (private posts are rejected).
+# YouTube uploads are public and the channel is connected on Content Rewards.
 platforms = ["instagram", "youtube"]
 state_file = "cr_state.json"
 
