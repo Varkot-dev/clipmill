@@ -97,7 +97,8 @@ def process_vod(cfg: Config, db: DB, tw: Twitch, s: Streamer, vod: dict) -> list
         except Exception as e:  # viewer clips are a bonus signal, never a blocker
             log.info("could not load viewer clips: %s", e)
     spikes = chat.boost_with_viewer_clips(spikes, vclips, d.get("viewer_clip_boost", 2.0),
-                                          d.get("lead_seconds", 50))
+                                          d.get("lead_seconds", 50), messages,
+                                          d.get("max_viewer_clip_candidates", 8))
     spikes = [sp for sp in spikes if from_s + 60 <= sp.t <= to_s]
     spikes = spikes[: d.get("max_candidates_per_vod", 12)]
     log.info("VOD %s (%s): %d chat messages, %d candidate moments between %.1fh and %.1fh%s",

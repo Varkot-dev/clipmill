@@ -167,10 +167,31 @@ def _detect(messages, duration_s, bucket_s, baseline_min, min_z, min_gap_s, min_
 
 
 def boost_with_viewer_clips(spikes: list[Spike], viewer_clips: list[dict], boost: float = 2.0,
-                            lead_s: float = 50) -> list[Spike]:
-    """A viewer clip covering the moment just before a spike is strong evidence it is good."""
+                            lead_s: float = 50, messages: list[Message] | None = None,
+                            max_new: int = 8, min_views: int = 3) -> list[Spike]:
+    """A viewer clip near a spike is strong evidence it is good. Popular viewer clips with no
+    matching chat spike become candidates of their own: viewers already picked that moment."""
+    used = set()
     for s in spikes:
-        hits = [c for c in viewer_clips if s.t - lead_s - 30 <= c["offset_s"] <= s.t + 10]
+        hits = [i for i, c in enumerate(viewer_clips) if s.t - lead_s - 30 <= c["offset_s"] <= s.t + 10]
         if hits:
-            s.score += boost + np.log10(1 + sum(c["views"] for c in hits))
+            used.update(hits)
+            s.score += boost + np.log10(1 + sum(viewer_clips[i]["views"] for i in hits))
+            title = viewer_clips[max(hits, key=lambda i: viewer_clips[i]["views"])].get("title", "")
+            if title:
+                s.sample = [f"[a viewer clipped this moment and titled it: {title}]"] + s.sample
+    extra = sorted((c for i, c in enumerate(viewer_clips) if i not in used and c["views"] >= min_views),
+                   key=lambda c: -c["views"])
+    taken: list[float] = []
+    for c in extra:
+        t = c["offset_s"] + min(c.get("duration_s", 30), 60) - 3  # the payoff sits near the clip's end
+        if any(abs(t - x) < 60 for x in taken) or any(abs(t - s.t) < 60 for s in spikes):
+            continue
+        sample = [m.text for m in (messages or []) if t - 20 <= m.t <= t + 10][:20]
+        spikes.append(Spike(t=t, zscore=0.0, rate=0.0, category="viewer clip",
+                            sample=[f"[a viewer clipped this moment and titled it: {c.get('title', '')}]"] + sample,
+                            score=boost + 2 * np.log10(1 + c["views"])))
+        taken.append(t)
+        if len(taken) >= max_new:
+            break
     return sorted(spikes, key=lambda s: -s.score)

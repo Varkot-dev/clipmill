@@ -353,3 +353,15 @@ def test_ask_claude_with_frames_uses_fake_cli(tmp_path):
     img.write_bytes(b"x")
     out = judge.ask_claude("hi", str(fake), "haiku", images=[(img, 12.0)])
     assert out["ok"] == str(tmp_path) and "Read" in out["args"]
+
+
+def test_popular_viewer_clips_become_candidates():
+    from clipmill import chat
+    spikes = [chat.Spike(t=1000, zscore=4, rate=1, category="funny", score=4)]
+    clips = [{"offset_s": 950, "duration_s": 30, "views": 50, "title": "near spike"},
+             {"offset_s": 5000, "duration_s": 30, "views": 900, "title": "huge fail"},
+             {"offset_s": 5010, "duration_s": 30, "views": 10, "title": "dupe"},
+             {"offset_s": 9000, "duration_s": 30, "views": 1, "title": "too few views"}]
+    out = chat.boost_with_viewer_clips(spikes, clips, messages=[])
+    assert [round(s.t) for s in out] == [5027, 1000]
+    assert "huge fail" in out[0].sample[0] and "near spike" in out[1].sample[0]
