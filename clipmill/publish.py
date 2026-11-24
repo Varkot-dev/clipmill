@@ -26,7 +26,7 @@ def description(s: Streamer, title: str) -> str:
     tag = "#GTA6" if "6" in s.game else "#GTARP"
     return "\n".join([
         title, "",
-        "#ad Paid clip.",
+        "#ad Paid clip." if s.campaign_url else "Clip from the stream.",
         f"Streamer: {s.display} ({s.handle_text})",
         f"Watch the full stream at {s.handle_text}", "",
         _tags(tag, f"#{s.display.replace(' ', '')}", *s.hashtags, "#shorts"),
@@ -37,7 +37,8 @@ def instagram_caption(s: Streamer, title: str) -> str:
     tag = "#gta6 #gtavi" if "6" in s.game else "#gtarp"
     tags = _tags(*tag.split(), "#gaming", "#twitch", *s.hashtags, f"#{s.display.replace(' ', '').lower()}",
                  "#gtaclips", "#funnymoments")
-    return (f"#ad {title}\n\nStreamer: {s.display} ({s.handle_text})\n"
+    ad = "#ad " if s.campaign_url else ""
+    return (f"{ad}{title}\n\nStreamer: {s.display} ({s.handle_text})\n"
             f"Follow for new GTA 6 moments every day\n\n{tags}")
 
 

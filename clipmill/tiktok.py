@@ -125,7 +125,8 @@ def caption(s, title: str) -> str:
         if t.lower() not in seen:
             seen.add(t.lower())
             out.append(t)
-    return f"#ad {title}\nStreamer: {s.display} ({s.handle_text})\n{' '.join(out)}"
+    ad = "#ad " if s.campaign_url else ""
+    return f"{ad}{title}\nStreamer: {s.display} ({s.handle_text})\n{' '.join(out)}"
 
 
 def match_streamer(description: str, streamers) -> object | None:

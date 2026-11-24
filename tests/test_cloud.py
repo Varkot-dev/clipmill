@@ -17,7 +17,7 @@ REPO = Path(__file__).parent.parent
 
 def test_committed_config_has_the_three_campaign_streamers():
     cfg = config.load(None, root=REPO)
-    assert [s.login for s in cfg.streamers] == ["bobby_vanriper", "darealboeshi", "asianjeff", "dasgasd3m"]
+    assert [s.login for s in cfg.streamers] == ["bobby_vanriper", "darealboeshi", "asianjeff", "kaicenat", "dasgasd3m"]
     assert cfg.section("auto")["platforms"] == ["youtube", "instagram", "tiktok"]
 
 
@@ -140,6 +140,7 @@ class FakeTelegram:
 
 @pytest.fixture
 def cloud(tmp_path, monkeypatch):
+    monkeypatch.setattr(review_flow, "in_prime_hours", lambda *a, **k: True)
     (tmp_path / "clipmill.toml").write_text((REPO / "clipmill.toml").read_text())
     for k in ("YOUTUBE_TOKEN_JSON", "INSTAGRAM_ACCESS_TOKEN"):
         monkeypatch.delenv(k, raising=False)
@@ -396,3 +397,9 @@ def test_tiktok_refresh_rotation(tmp_path):
     h = H()
     assert tiktok.access_token(db, "k", "sec", "base", h) == "a1"
     assert tiktok.access_token(db, "k", "sec", "dead", h) == "a2"   # uses the stored rotated token
+
+
+def test_paid_clips_wait_for_prime_hours_but_filler_posts():
+    from datetime import datetime
+    assert review_flow.in_prime_hours([[12, 24]], datetime(2026, 1, 1, 19))
+    assert not review_flow.in_prime_hours([[12, 24]], datetime(2026, 1, 1, 3))

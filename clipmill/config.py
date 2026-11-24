@@ -50,6 +50,7 @@ class Streamer:
     enabled: bool = True
     notes: str = ""
     hashtags: list = field(default_factory=list)  # tags a campaign requires in every caption
+    priority: str = "paid"   # "paid": posted in prime hours; "filler": posted any time to grow the account
 
 
 @dataclass

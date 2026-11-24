@@ -104,6 +104,18 @@ def auto_approve(db: DB, min_score: float) -> tuple[int, int]:
     return approved, dropped
 
 
+def in_prime_hours(windows, now=None) -> bool:
+    """Prime posting windows in US Eastern time, e.g. [[12, 24]] = noon to midnight."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    h = (now or datetime.now(ZoneInfo("America/New_York"))).hour
+    return any(a <= h < b for a, b in windows)
+
+
+def _fillers(cfg) -> list[str]:
+    return [s.login for s in cfg.streamers if getattr(s, "priority", "paid") == "filler"]
+
+
 def publish_approved(cfg: Config, db: DB, tg: Telegram | None) -> list[str]:
     """Posts approved clips, respecting the per-run and per-day caps. Extra approvals wait."""
     auto = cfg.section("auto")
@@ -118,7 +130,20 @@ def publish_approved(cfg: Config, db: DB, tg: Telegram | None) -> list[str]:
         for c in db.clips("uploaded"):
             if not c["instagram_id"] and c["artifact_run_id"]:
                 db.update_clip(c["id"], status="approved")
-    for clip in db.clips("approved"):
+    prime = in_prime_hours(auto.get("prime_hours_et", [[12, 24]]))
+    filler_left = auto.get("max_filler_per_day", 4) - db.conn.execute(
+        "SELECT COUNT(*) FROM clips c WHERE uploaded_at >= date('now') AND streamer IN (%s)" %
+        ",".join("?" * len(_fillers(cfg)) or "''"), _fillers(cfg)).fetchone()[0] if _fillers(cfg) else 0
+    queue = sorted(db.clips("approved"), key=lambda c: (c["streamer"] in _fillers(cfg), -(c["score"] or 0)))
+    for clip in queue:
+        is_filler = clip["streamer"] in _fillers(cfg)
+        if not is_filler and not prime:
+            lines.append(f"Clip #{clip['id']} waits for prime hours to post.")
+            continue
+        if is_filler:
+            if filler_left <= 0:
+                continue
+            filler_left -= 1
         if budget <= 0:
             lines.append(f"Clip #{clip['id']} is approved and queued for the next run (daily cap reached).")
             continue

@@ -136,7 +136,7 @@ def process_vod(cfg: Config, db: DB, tw: Twitch, s: Streamer, vod: dict) -> list
                             font=r.get("font", "Arial Black"), words_per_chunk=r.get("caption_words", 2),
                             caption_y=render.caption_y(s.facecam, r.get("width", 1080), r.get("height", 1920)),
                             handle_text=s.handle_text, hook=v.hook,
-                            disclosure=r.get("disclosure", ""),
+                            disclosure=r.get("disclosure", "") if s.campaign_url else "",
                             disclosure_seconds=r.get("disclosure_seconds", 3))
             render.render_short(window, out, v.start_s, v.end_s, ass, facecam=s.facecam,
                                 gameplay=s.gameplay, width=r.get("width", 1080),
