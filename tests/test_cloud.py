@@ -30,7 +30,7 @@ def test_local_file_only_supplies_secrets(tmp_path, monkeypatch):
     monkeypatch.delenv("TWITCH_CLIENT_ID", raising=False)
     cfg = config.load(tmp_path / "config.toml")
     assert cfg.section("twitch")["client_id"] == "abc"
-    assert cfg.section("detect")["max_candidates_per_vod"] == 12      # old template ignored
+    assert cfg.section("detect")["max_candidates_per_vod"] == 16      # old template ignored
     assert "examplestreamer" not in [s.login for s in cfg.streamers]  # placeholder ignored
 
 
