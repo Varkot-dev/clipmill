@@ -11,7 +11,7 @@ bucket_seconds = 5          # chat is counted in 5 second buckets
 baseline_minutes = 10       # rolling window used as "normal" chat speed
 min_zscore = 3.0            # how far above normal a spike must be
 min_gap_seconds = 90        # spikes closer than this are merged
-max_candidates_per_vod = 12 # only the strongest spikes go to the judge (keeps cloud minutes free)
+max_candidates_per_vod = 16 # candidates per VOD (or per new chunk of a live marathon)
 lead_seconds = 50           # chat reacts after the moment, so look back this far
 tail_seconds = 15
 viewer_clip_boost = 2.0     # extra score when a viewer already clipped that moment
@@ -21,7 +21,7 @@ vods_per_streamer = 2       # how many recent VODs to look at each run
 mode = "claude"             # "claude" uses claude -p on your plan; "heuristic" needs no LLM
 claude_bin = "claude"
 model = "haiku"             # smallest model; plenty for reading a transcript. "sonnet" if picks look weak
-min_score = 6               # 1 to 10, clips below this are not rendered at all
+min_score = 5               # 1 to 10, clips below this are not rendered at all
 
 [transcribe]
 model = "small"             # faster-whisper: tiny, base, small. small hears game audio far better
@@ -41,9 +41,9 @@ caption_words = 3
 [auto]
 review = false              # false: clips scoring min_score+ post themselves, no review needed
                             # true:  every clip goes to Telegram with Post / Skip buttons first
-min_score = 7               # judge score needed to post automatically
-max_uploads_per_run = 2
-max_uploads_per_day = 6     # across all streamers, so the channel never floods
+min_score = 5               # judge score needed to post automatically (5 = watchable; volume wins)
+max_uploads_per_run = 4
+max_uploads_per_day = 10    # across all streamers; clip pages post 8 to 12 a day
 platforms = ["youtube", "instagram"]   # a platform with no login set up is skipped
 
 [youtube]

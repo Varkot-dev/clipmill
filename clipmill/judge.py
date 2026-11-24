@@ -50,10 +50,10 @@ Transcript of the window (timestamps are seconds from the start of the window):
 {transcript}
 
 Decide:
-- keep: true only if a stranger scrolling with zero context would laugh or say "no way":
-  a fail, a ridiculous reaction, an absurd NPC or cop moment, a chaotic chase, a perfect
-  one-liner, a rage moment. Talking to chat, reading donations, menus, settings, loading,
-  or story cutscenes are never kept.
+- keep: true if a stranger scrolling with zero context would enjoy watching it: a fail, a
+  crash, a death, a reaction, an NPC or cop moment, a chase, a funny line, a rage moment,
+  or just good GTA chaos. This page posts a lot, so watchable is enough. Talking to chat,
+  reading donations, menus, settings, loading, or pure story cutscenes are never kept.
 - start_s / end_s: as SHORT as possible. Start 1 to 3 seconds before the setup line, end
   right after the payoff or the laugh, no lingering. Aim for 12 to 25 seconds, never over 35.
   Never start or end mid-sentence.
