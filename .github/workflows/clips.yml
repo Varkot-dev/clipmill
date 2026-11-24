@@ -17,6 +17,7 @@ on:
 permissions:
   contents: write   # save the database to the state branch
   actions: read
+  issues: write     # TikTok draft captions are posted as an issue (GitHub notifies the owner)
 
 concurrency:
   group: clipmill-state   # never run at the same time as the approvals job
@@ -39,6 +40,9 @@ jobs:
       INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
       INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
       CR_STATE_JSON: ${{ secrets.CR_STATE_JSON }}
+      TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
+      TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+      TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
       GH_TOKEN: ${{ github.token }}
       GITHUB_TOKEN: ${{ github.token }}
     steps:

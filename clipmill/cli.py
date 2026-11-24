@@ -107,6 +107,38 @@ class _Problems(logging.Handler):
             self.items.append(msg)
 
 
+def _notify_tiktok_drafts(db) -> list[str]:
+    """Opens a GitHub issue with the captions of new TikTok drafts (GitHub notifies the owner)."""
+    rows = db.conn.execute("SELECT id, tiktok_caption FROM clips WHERE tiktok_publish_id IS NOT NULL "
+                           "AND tiktok_notified IS NULL ORDER BY id").fetchall()
+    if not rows:
+        return []
+    repo, token = os.environ.get("GITHUB_REPOSITORY"), os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    body = ["New drafts are in your TikTok app (Profile > Drafts, or the inbox notification). "
+            "For each one: open it, paste its caption below, tap Post. The bot submits it to the "
+            "campaign by itself after that.\n"]
+    for r in rows:
+        body.append(f"**Clip #{r['id']}**\n```\n{r['tiktok_caption']}\n```")
+    if repo and token:
+        try:
+            import requests
+            resp = requests.post(f"https://api.github.com/repos/{repo}/issues", timeout=30, headers={
+                "Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
+                json={"title": f"TikTok: {len(rows)} new draft(s) to post", "body": "\n\n".join(body),
+                      "labels": ["tiktok"]})
+            resp.raise_for_status()
+            link = resp.json().get("html_url", "")
+        except Exception as e:
+            logging.getLogger("clipmill").warning("could not open the TikTok captions issue: %s", e)
+            return []
+    else:
+        print("\n\n".join(body))
+        link = "printed above"
+    for r in rows:
+        db.update_clip(r["id"], tiktok_notified=link)
+    return [f"TikTok captions for {len(rows)} draft(s): {link}"]
+
+
 def cmd_run(args):
     """Cloud entry point: make clips from new VODs, then send them to your phone for review."""
     problems = _Problems()
@@ -136,6 +168,7 @@ def _run(args):
         lines.append(f"Auto mode: {approved} clip(s) scored {auto.get('min_score', 8)}+ and were approved, "
                      f"{dropped} weaker clip(s) dropped")
         lines += publish_approved(cfg, db, tg)
+        lines += _notify_tiktok_drafts(db)
         from . import stats
         if stats.refresh_all(cfg, db):
             lines += ["Views so far: " + l for l in stats.report(db)]
@@ -292,6 +325,73 @@ def cmd_instagram_check(args):
     print(f"Instagram login works: @{me.get('username')} (user id {me.get('user_id')})")
 
 
+def cmd_tiktok_login(args):
+    """One-time TikTok login on the Mac; saves the keys and refresh token as GitHub secrets."""
+    import getpass
+    import subprocess
+    import webbrowser
+
+    from . import tiktok
+
+    print("From developers.tiktok.com > your app > Sandbox > Credentials:")
+    key = getpass.getpass("TikTok Client key (hidden): ").strip()
+    secret = getpass.getpass("TikTok Client secret (hidden): ").strip()
+    url = tiktok.auth_url(key)
+    print("\nOpening TikTok. Log in as the GTA 6 Moments account and tap Authorize.")
+    print(f"If no browser opens, visit:\n{url}\n")
+    webbrowser.open(url)
+    code = input("Paste the code shown on the page after you authorize: ").strip()
+    data = tiktok.exchange_code(key, secret, code)
+    repo = os.environ.get("CLIPMILL_REPO", "Varkot-dev/clipmill")
+    for name, value in [("TIKTOK_CLIENT_KEY", key), ("TIKTOK_CLIENT_SECRET", secret),
+                        ("TIKTOK_REFRESH_TOKEN", data["refresh_token"])]:
+        subprocess.run(["gh", "secret", "set", name, "-R", repo], input=value, text=True, check=True,
+                       stdout=subprocess.DEVNULL)
+        print(f"  set {name}")
+    print("TikTok is connected. New clips will arrive in your TikTok app as drafts.")
+
+
+def cmd_tiktok_watch(args):
+    """Finds TikToks the owner just posted from a draft and submits them to the campaign."""
+    import json
+
+    from . import tiktok
+    from .publish import submit_to_campaign
+
+    cfg, db = _ctx(args)
+    tt = cfg.section("tiktok")
+    out = os.environ.get("GITHUB_OUTPUT")
+    if not (tt.get("client_key") and tt.get("refresh_token")):
+        print("TikTok is not set up")
+        return
+    token = tiktok.access_token(db, tt["client_key"], tt["client_secret"], tt["refresh_token"])
+    seen = set(json.loads(db.get("tt_seen", "[]")))
+    fresh = [v for v in tiktok.recent_videos(token) if v["id"] not in seen and tiktok.is_fresh(v)]
+    if args.check:
+        if out:
+            with open(out, "a") as f:
+                f.write(f"work={'true' if fresh else 'false'}\n")
+        print(f"{len(fresh)} new TikTok post(s) to submit")
+        return
+    lines = []
+    for v in fresh:
+        seen.add(v["id"])
+        s = tiktok.match_streamer(v.get("video_description") or v.get("title", ""), cfg.streamers)
+        if not s:
+            lines.append(f"TikTok {v.get('share_url')}: no 'Streamer:' line in the caption, not submitted")
+            continue
+        row = db.conn.execute(
+            "SELECT id FROM clips WHERE streamer=? AND tiktok_publish_id IS NOT NULL AND tiktok_url IS NULL "
+            "ORDER BY id LIMIT 1", (s.login,)).fetchone()
+        cid = row["id"] if row else None
+        if cid:
+            db.update_clip(cid, tiktok_url=v.get("share_url"))
+        note = submit_to_campaign(cfg, db, cid or 0, s, "tiktok", v.get("share_url", ""))
+        lines.append(f"TikTok {v.get('share_url')} ({s.display}): {note or 'posted'}")
+    db.put("tt_seen", json.dumps(sorted(seen)[-200:]))
+    _summary(lines, "clipmill tiktok-watch")
+
+
 def cmd_instagram_refresh(args):
     from .instagram import refresh_token
 
@@ -341,6 +441,10 @@ def main(argv=None):
     s.set_defaults(fn=cmd_telegram_chat_id)
     sub.add_parser("instagram-check", help="test the Instagram token").set_defaults(fn=cmd_instagram_check)
     sub.add_parser("instagram-refresh", help="extend the Instagram token by ~60 days").set_defaults(fn=cmd_instagram_refresh)
+    sub.add_parser("tiktok-login", help="connect the TikTok account (drafts)").set_defaults(fn=cmd_tiktok_login)
+    s = sub.add_parser("tiktok-watch", help="submit TikToks posted from drafts to their campaigns")
+    s.add_argument("--check", action="store_true", help="only report whether there is work")
+    s.set_defaults(fn=cmd_tiktok_watch)
 
     args = p.parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,

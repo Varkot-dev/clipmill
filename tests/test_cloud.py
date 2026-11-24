@@ -18,7 +18,7 @@ REPO = Path(__file__).parent.parent
 def test_committed_config_has_the_three_campaign_streamers():
     cfg = config.load(None, root=REPO)
     assert [s.login for s in cfg.streamers] == ["bobby_vanriper", "darealboeshi", "asianjeff", "dasgasd3m"]
-    assert cfg.section("auto")["platforms"] == ["youtube", "instagram"]
+    assert cfg.section("auto")["platforms"] == ["youtube", "instagram", "tiktok"]
 
 
 def test_local_file_only_supplies_secrets(tmp_path, monkeypatch):
@@ -365,3 +365,34 @@ def test_popular_viewer_clips_become_candidates():
     out = chat.boost_with_viewer_clips(spikes, clips, messages=[])
     assert [round(s.t) for s in out] == [5027, 1000]
     assert "huge fail" in out[0].sample[0] and "near spike" in out[1].sample[0]
+
+
+def test_tiktok_caption_and_matching(tmp_path):
+    from clipmill import config, tiktok
+    cfg = config.load("none")
+    s = [x for x in cfg.streamers if x.login == "asianjeff"][0]
+    cap = tiktok.caption(s, "bro was NOT ready")
+    assert cap.startswith("#ad ") and "#asianjeff" in cap.lower() and "Streamer: AsianJeff" in cap
+    assert tiktok.match_streamer(cap, cfg.streamers).login == "asianjeff"
+    assert tiktok.match_streamer("random video", cfg.streamers) is None
+
+
+def test_tiktok_refresh_rotation(tmp_path):
+    from clipmill import tiktok
+    from clipmill.db import DB
+    db = DB(tmp_path / "s.db")
+
+    class R:
+        def __init__(self, d): self.d, self.status_code = d, 200
+        def json(self): return self.d
+
+    class H:
+        def __init__(self): self.n = 0
+        def post(self, url, data=None, **k):
+            self.n += 1
+            if data["refresh_token"] == "dead":
+                return R({"error": "invalid_grant", "error_description": "x"})
+            return R({"access_token": f"a{self.n}", "refresh_token": f"r{self.n}"})
+    h = H()
+    assert tiktok.access_token(db, "k", "sec", "base", h) == "a1"
+    assert tiktok.access_token(db, "k", "sec", "dead", h) == "a2"   # uses the stored rotated token

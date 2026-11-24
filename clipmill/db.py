@@ -53,6 +53,10 @@ MIGRATIONS = {
     "cr_error": "TEXT",
     "ig_views": "INTEGER",
     "yt_views": "INTEGER",
+    "tiktok_publish_id": "TEXT",
+    "tiktok_caption": "TEXT",
+    "tiktok_url": "TEXT",
+    "tiktok_notified": "TEXT",
 }
 
 

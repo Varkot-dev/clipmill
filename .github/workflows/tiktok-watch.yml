@@ -1,0 +1,58 @@
+# Every 10 minutes: if a TikTok was just posted from one of the bot's drafts, submit it to the
+# streamer's Content Rewards campaign (they only accept submissions within 30 minutes).
+name: tiktok watch
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: clipmill-state   # shares the database with the clip runs
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: "true"
+      CLIPMILL_DB: state/clipmill.db
+      TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
+      TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+      TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
+      CR_STATE_JSON: ${{ secrets.CR_STATE_JSON }}
+    steps:
+      - name: Skip until TikTok is connected
+        id: gate
+        run: echo "on=${{ secrets.TIKTOK_REFRESH_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.on == 'true'
+      - name: Load saved state
+        if: steps.gate.outputs.on == 'true'
+        run: bash scripts/load_state.sh
+      - uses: actions/setup-python@v5
+        if: steps.gate.outputs.on == 'true'
+        with:
+          python-version: "3.12"
+      - name: Install clipmill (light)
+        if: steps.gate.outputs.on == 'true'
+        run: pip install -q --no-deps -e . && pip install -q requests cryptography playwright numpy
+      - name: Anything new on TikTok?
+        id: check
+        if: steps.gate.outputs.on == 'true'
+        run: python -m clipmill.cli --config none tiktok-watch --check
+      - name: Install browser for Content Rewards
+        if: steps.check.outputs.work == 'true'
+        run: python -m playwright install --with-deps chromium > /dev/null
+      - name: Submit to campaigns
+        if: steps.check.outputs.work == 'true'
+        run: python -m clipmill.cli --config none tiktok-watch
+      - name: Save state
+        if: steps.gate.outputs.on == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash scripts/save_state.sh

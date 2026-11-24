@@ -44,7 +44,7 @@ review = false              # false: clips scoring min_score+ post themselves, n
 min_score = 5               # judge score needed to post automatically (5 = watchable; volume wins)
 max_uploads_per_run = 3
 max_uploads_per_day = 10    # across all streamers; clip pages post 8 to 12 a day
-platforms = ["youtube", "instagram"]   # a platform with no login set up is skipped
+platforms = ["youtube", "instagram", "tiktok"]   # a platform with no login set up is skipped
 
 [youtube]
 client_secrets = "client_secret.json"
@@ -57,7 +57,7 @@ default_tags = ["GTA 6", "GTA VI", "GTA", "gaming", "shorts"]
 # Submit each post to its streamer's campaign right after it goes public (30-minute rule).
 submit = true
 # YouTube uploads are public and the channel is connected on Content Rewards.
-platforms = ["instagram", "youtube"]
+platforms = ["instagram", "youtube", "tiktok"]
 state_file = "cr_state.json"
 
 [instagram]

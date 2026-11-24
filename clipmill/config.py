@@ -18,7 +18,7 @@ except ModuleNotFoundError:  # Python 3.10
     import tomli as tomllib
 
 BASE_FILE = "clipmill.toml"
-SECRET_SECTIONS = {"twitch", "instagram", "telegram"}
+SECRET_SECTIONS = {"twitch", "instagram", "telegram", "tiktok"}
 
 # environment variable -> (section, key)
 ENV_OVERRIDES = {
@@ -26,6 +26,9 @@ ENV_OVERRIDES = {
     "TWITCH_CLIENT_SECRET": ("twitch", "client_secret"),
     "INSTAGRAM_ACCESS_TOKEN": ("instagram", "access_token"),
     "INSTAGRAM_USER_ID": ("instagram", "user_id"),
+    "TIKTOK_CLIENT_KEY": ("tiktok", "client_key"),
+    "TIKTOK_CLIENT_SECRET": ("tiktok", "client_secret"),
+    "TIKTOK_REFRESH_TOKEN": ("tiktok", "refresh_token"),
     "CLIPMILL_DB": ("paths", "db"),
     "CLIPMILL_WORK_DIR": ("paths", "work_dir"),
     "CLIPMILL_OUTPUT_DIR": ("paths", "output_dir"),

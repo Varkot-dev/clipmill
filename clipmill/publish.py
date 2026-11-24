@@ -49,6 +49,9 @@ def enabled_platforms(cfg: Config) -> list[str]:
         out.append("youtube")
     if "instagram" in wanted and cfg.section("instagram").get("access_token"):
         out.append("instagram")
+    tt = cfg.section("tiktok")
+    if "tiktok" in wanted and tt.get("client_key") and tt.get("refresh_token"):
+        out.append("tiktok")
     return out
 
 
@@ -100,6 +103,19 @@ def publish(cfg: Config, db: DB, clip, path: Path) -> dict[str, str]:
             errors.append(f"Instagram: {e}")
     elif clip["instagram_id"]:
         results["instagram"] = f"instagram media {clip['instagram_id']}"
+
+    if "tiktok" in enabled_platforms(cfg) and not clip["tiktok_publish_id"]:
+        try:
+            from . import tiktok
+
+            tt = cfg.section("tiktok")
+            token = tiktok.access_token(db, tt["client_key"], tt["client_secret"], tt["refresh_token"])
+            pid = tiktok.upload_draft(token, path)
+            db.update_clip(clip["id"], tiktok_publish_id=pid, tiktok_caption=tiktok.caption(s, title))
+            results["tiktok"] = "draft sent to the TikTok app"
+        except Exception as e:
+            log.exception("TikTok draft upload failed for clip %s", clip["id"])
+            errors.append(f"TikTok: {e}")
 
     if results:
         db.update_clip(clip["id"], status="uploaded",
