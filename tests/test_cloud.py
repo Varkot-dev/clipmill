@@ -145,6 +145,7 @@ def cloud(tmp_path, monkeypatch):
     for k in ("YOUTUBE_TOKEN_JSON", "INSTAGRAM_ACCESS_TOKEN"):
         monkeypatch.delenv(k, raising=False)
     cfg = config.load("none", root=tmp_path)
+    cfg.raw["auto"]["max_uploads_per_day"] = 26  # the live config may be paused at 0
     db = DB(cfg.path("db"))
     out = cfg.path("output_dir") / "darealboeshi"
     out.mkdir(parents=True)
@@ -183,6 +184,20 @@ def test_notify_then_post_and_skip(cloud, monkeypatch):
     assert posted == [ids[0]]
     assert "youtube.com/shorts/abc" in lines[0]
     assert tg.messages[0][1] == 500 + ids[0]  # reply goes under the clip's message
+
+
+def test_pause_stops_new_posts_and_retries(cloud, monkeypatch):
+    cfg, db, ids = cloud
+    cfg.raw["auto"]["max_uploads_per_day"] = 0
+    db.update_clip(ids[0], status="approved")
+    db.update_clip(ids[1], status="uploaded", youtube_id="y1", artifact_run_id="1")  # missed Instagram
+    posted = []
+    monkeypatch.setattr(review_flow.publish, "enabled_platforms", lambda cfg: ["youtube", "instagram"])
+    monkeypatch.setattr(review_flow.publish, "publish", lambda *a: posted.append(a[2]["id"]) or {})
+    lines = review_flow.publish_approved(cfg, db, None)
+    assert posted == []
+    assert "paused" in lines[0]
+    assert db.clip(ids[1])["status"] == "uploaded"
 
 
 def test_daily_cap_holds_extra_approvals(cloud, monkeypatch):

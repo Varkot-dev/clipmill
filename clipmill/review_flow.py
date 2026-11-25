@@ -127,6 +127,12 @@ def publish_approved(cfg: Config, db: DB, tg: Telegram | None) -> list[str]:
         if db.clips("approved"):
             lines.append("Approved clips are waiting, but no YouTube or Instagram login is set up yet.")
         return lines
+    if auto.get("max_uploads_per_day", 6) <= 0:
+        # posting is paused on purpose (max_uploads_per_day = 0): no new posts and no retries,
+        # so a known outage does not fail every run
+        waiting = len(db.clips("approved"))
+        lines.append(f"Posting is paused (max_uploads_per_day = 0). {waiting} approved clip(s) are queued.")
+        return lines
     plats = publish.enabled_platforms(cfg)
     # a clip that missed a platform (it was connected later, or it had an outage) gets another go
     for c in db.clips("uploaded"):
@@ -163,14 +169,23 @@ def publish_approved(cfg: Config, db: DB, tg: Telegram | None) -> list[str]:
             db.update_clip(clip["id"], upload_error=str(e)[:500])
             results = {}
         fresh = db.clip(clip["id"])
-        if results and not retry:
+        if retry:
+            before = {k for k in ("youtube_id", "instagram_id", "tiktok_publish_id") if clip[k]}
+            after = {k for k in ("youtube_id", "instagram_id", "tiktok_publish_id") if fresh[k]}
+            if after == before and not fresh["upload_error"]:
+                continue  # nothing to do yet (e.g. TikTok paused); not worth a report line
+            if after != before:
+                links = "\n".join(f"{k}: {v}" for k, v in results.items())
+                msg = f"Retried clip #{clip['id']} on a missed platform:\n{links}"
+            else:
+                msg = f"Could not post clip #{clip['id']}: {fresh['upload_error']}"
+        elif results:
             budget -= 1
             links = "\n".join(f"{k}: {v}" for k, v in results.items())
             msg = f"Posted clip #{clip['id']}:\n{links}"
-
         else:
             msg = f"Could not post clip #{clip['id']}: {fresh['upload_error']}"
-        if fresh["upload_error"] and results:
+        if fresh["upload_error"] and results and not msg.startswith("Could not"):
             msg += f"\nSome platforms failed: {fresh['upload_error']}"
         lines.append(msg)
         if tg:
