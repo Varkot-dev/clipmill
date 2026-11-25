@@ -43,7 +43,7 @@ review = false              # false: clips scoring min_score+ post themselves, n
                             # true:  every clip goes to Telegram with Post / Skip buttons first
 min_score = 5               # judge score needed to post automatically (5 = watchable; volume wins)
 max_uploads_per_run = 4
-max_uploads_per_day = 26    # about 20 Kai growth clips plus paid clips in prime hours
+max_uploads_per_day = 0     # PAUSED: Instagram "confirm you are human" check (Nov 24). Clips keep queuing. Restore to 8, then ramp up.
 prime_hours_et = [[12, 24]] # paid-campaign clips post only noon to midnight Eastern (most viewers)
 max_filler_per_day = 20     # Kai Cenat clips a day, posted any time
 platforms = ["youtube", "instagram", "tiktok"]   # a platform with no login set up is skipped
